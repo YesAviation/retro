@@ -1,0 +1,34 @@
+[workspace]
+members = [
+    "crypto",
+    "server",
+    "registry",
+    "client/src-tauri",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+# Compile crypto crates with optimizations even in dev/debug builds.
+# RSA-4096 key generation is unusably slow without this (~30s → <1s).
+[profile.dev.package]
+rsa = { opt-level = 3 }
+num-bigint-dig = { opt-level = 3 }
+num-integer = { opt-level = 3 }
+num-traits = { opt-level = 3 }
+num-iter = { opt-level = 3 }
+curve25519-dalek = { opt-level = 3 }
+ed25519-dalek = { opt-level = 3 }
+x25519-dalek = { opt-level = 3 }
+aes = { opt-level = 3 }
+aes-gcm = { opt-level = 3 }
+chacha20 = { opt-level = 3 }
+chacha20poly1305 = { opt-level = 3 }
+sha2 = { opt-level = 3 }
+hkdf = { opt-level = 3 }
+poly1305 = { opt-level = 3 }
+ghash = { opt-level = 3 }
+polyval = { opt-level = 3 }

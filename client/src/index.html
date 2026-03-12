@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+
+        <!-- ─── Left Sidebar ─── -->
+        <aside id="sidebar">
+            <div id="sidebar-brand">
+                <span class="brand-text">RETRO</span>
+                <div class="window-controls">
+                    <button class="win-btn win-btn-minimize" id="btn-minimize" title="Minimize"></button>
+                    <button class="win-btn win-btn-maximize" id="btn-maximize" title="Maximize"></button>
+                    <button class="win-btn win-btn-close" id="btn-close" title="Close"></button>
+                </div>
+            </div>
+
+            <nav id="sidebar-nav">
+                <button class="nav-btn active" data-view="official">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span>Official Servers</span>
+                </button>
+                <button class="nav-btn" data-view="servers">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="6" rx="1"/><rect x="2" y="15" width="20" height="6" rx="1"/><line x1="6" y1="6" x2="6" y2="6"/><line x1="6" y1="18" x2="6" y2="18"/></svg>
+                    <span>Server List</span>
+                </button>
+                <button class="nav-btn" id="btn-direct-connect">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <span>Direct Connect</span>
+                </button>
+                <button class="nav-btn hidden" id="btn-session">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span id="btn-session-label">Session</span>
+                </button>
+            </nav>
+
+            <!-- Room info (visible when connected to a server) -->
+            <div id="sidebar-room-section" class="hidden">
+                <div class="sidebar-divider"></div>
+                <div class="sidebar-label">ROOM</div>
+                <div id="room-info" class="room-info-clickable" title="Return to chat room"></div>
+                <div class="sidebar-label">MEMBERS</div>
+                <ul id="member-list"></ul>
+            </div>
+
+            <div id="sidebar-spacer"></div>
+
+            <!-- Settings at bottom -->
+            <div id="sidebar-footer">
+                <div id="connection-status">
+                    <span id="status-dot" class="dot-disconnected"></span>
+                    <span id="status-text">Not connected</span>
+                </div>
+                <button id="settings-btn" class="nav-btn settings">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span>Settings</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ─── Main Content Area ─── -->
+        <main id="content">
+            <div id="drag-region"></div>
+
+            <!-- View: Official Servers -->
+            <div id="view-official" class="view active">
+                <div class="view-header">
+                    <h2>Official Servers</h2>
+                    <p class="view-subtitle">Officially hosted Retro servers</p>
+                </div>
+                <div id="official-list" class="server-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">★</div>
+                        <p>No official servers available</p>
+                        <p class="empty-hint">Check back later or use Direct Connect</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Server List -->
+            <div id="view-servers" class="view">
+                <div class="view-header">
+                    <h2>Server List</h2>
+                    <p class="view-subtitle">Community &amp; self-hosted servers</p>
+                </div>
+                <div id="servers-list" class="server-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">◆</div>
+                        <p>No servers found</p>
+                        <p class="empty-hint">No self-hosted servers are broadcasting right now</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Chat (visible when connected + in a room) -->
+            <div id="view-chat" class="view">
+                <div id="chat-header">
+                    <div id="chat-header-left">
+                        <span id="chat-room-name">Room</span>
+                        <span id="chat-room-age" class="chat-meta"></span>
+                    </div>
+                    <div id="chat-actions">
+                        <button id="btn-close-room" class="btn-small btn-close-room hidden" title="Close Room (Destroy)">Close Room</button>
+                        <button id="btn-leave-room" class="btn-small" title="Leave Room">Leave</button>
+                    </div>
+                </div>
+                <div id="messages"></div>
+                <div id="chat-input-area">
+                    <div id="cursor-line">
+                        <input
+                            type="text"
+                            id="chat-input"
+                            placeholder="Type a message..."
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="off"
+                            spellcheck="false"
+                        />
+                        <button id="btn-send" class="btn-send" title="Send">↵</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Connected to server, pick/create room -->
+            <div id="view-lobby" class="view">
+                <div class="view-header">
+                    <h2 id="lobby-server-name">Connected</h2>
+                    <p class="view-subtitle" id="lobby-handle"></p>
+                </div>
+                <div class="lobby-actions">
+                    <div class="form-group">
+                        <label for="create-room-name">Create a Room</label>
+                        <div class="inline-form">
+                            <input type="text" id="create-room-name" placeholder="Room name" autocomplete="off" spellcheck="false" />
+                            <button id="btn-create-room" class="btn-primary">Create</button>
+                        </div>
+                    </div>
+                    <div class="lobby-divider"></div>
+                    <div class="form-group">
+                        <label for="join-room-id">Join a Room</label>
+                        <div class="inline-form">
+                            <input type="text" id="join-room-id" placeholder="Room ID" autocomplete="off" spellcheck="false" />
+                            <button id="btn-join-room" class="btn-primary">Join</button>
+                        </div>
+                    </div>
+                    <div class="lobby-divider"></div>
+                    <button id="btn-disconnect" class="btn-danger">Disconnect</button>
+                </div>
+            </div>
+
+            <!-- View: Settings -->
+            <div id="view-settings" class="view">
+                <div class="view-header">
+                    <h2>Settings</h2>
+                    <p class="view-subtitle">Customize your experience</p>
+                </div>
+                <div class="settings-section">
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <span class="setting-label">Theme</span>
+                            <span class="setting-desc">Switch between dark and light mode</span>
+                        </div>
+                        <div id="theme-toggle" class="toggle-switch">
+                            <button class="toggle-opt active" data-theme="dark">Dark</button>
+                            <button class="toggle-opt" data-theme="light">Light</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- Direct Connect Modal -->
+    <div id="modal-overlay" class="hidden">
+        <div id="modal">
+            <div id="modal-header">
+                <h3 id="modal-title">Direct Connect</h3>
+                <button id="modal-close">&times;</button>
+            </div>
+            <div id="modal-body">
+                <div class="form-group">
+                    <label for="dc-host">IP / Hostname</label>
+                    <input type="text" id="dc-host" placeholder="127.0.0.1" autocomplete="off" spellcheck="false" />
+                </div>
+                <div class="form-group">
+                    <label for="dc-port">Port</label>
+                    <input type="text" id="dc-port" placeholder="9300" autocomplete="off" spellcheck="false" />
+                </div>
+                <button id="dc-connect-btn" class="btn-primary" style="width:100%">Connect</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CRT Scanline Overlay -->
+    <div id="crt-overlay"></div>
+
+    <script src="main.js"></script>
+</body>
+</html>
