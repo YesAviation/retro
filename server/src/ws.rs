@@ -22,7 +22,7 @@ use axum::{
 use futures::{SinkExt, StreamExt};
 use tokio::sync::mpsc;
 
-use retro_crypto::{ClientMessage, ServerMessage};
+use retro_crypto::{ClientMessage, RoomListEntry, ServerMessage};
 
 use crate::state::AppState;
 
@@ -91,6 +91,7 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                     match client_msg {
                         // ── Create Room ──────────────────────────────────
                         ClientMessage::CreateRoom { config } => {
+                            // Password arrives pre-hashed (SHA-256) from client — store as-is
                             let room_id = recv_state.create_room(config.clone());
                             rooms.push(room_id.clone());
 
@@ -111,8 +112,21 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                         }
 
                         // ── Join Room ────────────────────────────────────
-                        ClientMessage::JoinRoom { room_id } => {
+                        ClientMessage::JoinRoom { room_id, password_hash } => {
                             if let Some(room) = recv_state.rooms().get(&room_id) {
+                                // Verify password if the room has one
+                                if !room.config.password.is_empty() {
+                                    if password_hash != room.config.password {
+                                        let _ = tx.send(
+                                            serde_json::to_string(&ServerMessage::Error {
+                                                message: "Incorrect room password".to_string(),
+                                            })
+                                            .unwrap(),
+                                        );
+                                        continue;
+                                    }
+                                }
+
                                 // Get existing members before we join
                                 let member_list =
                                     room.get_member_infos(None).await;
@@ -354,6 +368,34 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                                     .unwrap(),
                                 );
                             }
+                        }
+
+                        // ── List Rooms ───────────────────────────────────
+                        ClientMessage::ListRooms => {
+                            let mut entries = Vec::new();
+                            for entry in recv_state.rooms().iter() {
+                                let room = entry.value();
+                                // Skip hidden rooms and password-protected rooms
+                                if room.config.hidden || !room.config.password.is_empty() {
+                                    continue;
+                                }
+                                let count = room.members.read().await.len() as u32;
+                                entries.push(RoomListEntry {
+                                    room_id: room.id.clone(),
+                                    name: if room.config.name.is_empty() {
+                                        room.id[..16.min(room.id.len())].to_string()
+                                    } else {
+                                        room.config.name.clone()
+                                    },
+                                    member_count: count,
+                                    created_at: room.created_at,
+                                });
+                            }
+                            let response = serde_json::to_string(
+                                &ServerMessage::RoomList { rooms: entries },
+                            )
+                            .unwrap();
+                            let _ = tx.send(response);
                         }
                     }
                 }

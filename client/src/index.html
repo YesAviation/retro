@@ -139,6 +139,24 @@
                             <input type="text" id="create-room-name" placeholder="Room name" autocomplete="off" spellcheck="false" />
                             <button id="btn-create-room" class="btn-primary">Create</button>
                         </div>
+                        <div class="room-options">
+                            <div class="room-option-row">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="create-room-password-toggle" />
+                                    <span class="toggle-switch"></span>
+                                    <span>Password</span>
+                                </label>
+                                <input type="password" id="create-room-password" class="room-option-input" placeholder="Enter password" autocomplete="off" spellcheck="false" disabled />
+                            </div>
+                            <div class="room-option-row">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="create-room-hidden" />
+                                    <span class="toggle-switch"></span>
+                                    <span>Hidden</span>
+                                </label>
+                                <span class="room-option-hint">Won't appear in public list</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="lobby-divider"></div>
                     <div class="form-group">
@@ -147,9 +165,23 @@
                             <input type="text" id="join-room-id" placeholder="Room ID" autocomplete="off" spellcheck="false" />
                             <button id="btn-join-room" class="btn-primary">Join</button>
                         </div>
+                        <input type="password" id="join-room-password" class="room-option-input join-password" placeholder="Password (if required)" autocomplete="off" spellcheck="false" />
                     </div>
                     <div class="lobby-divider"></div>
                     <button id="btn-disconnect" class="btn-danger">Disconnect</button>
+
+                    <div class="lobby-divider"></div>
+                    <div class="room-browser">
+                        <div class="room-browser-header">
+                            <span class="room-browser-title">Public Rooms</span>
+                            <button id="btn-refresh-rooms" class="btn-icon" title="Refresh">↻</button>
+                        </div>
+                        <div id="lobby-room-list" class="room-list">
+                            <div class="room-list-empty">
+                                <span>No public rooms</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -54,9 +54,15 @@ const lobbyServerName = document.getElementById("lobby-server-name");
 const lobbyHandle = document.getElementById("lobby-handle");
 const createRoomName = document.getElementById("create-room-name");
 const btnCreateRoom = document.getElementById("btn-create-room");
+const createRoomPasswordToggle = document.getElementById("create-room-password-toggle");
+const createRoomPassword = document.getElementById("create-room-password");
+const createRoomHidden = document.getElementById("create-room-hidden");
 const joinRoomId = document.getElementById("join-room-id");
 const btnJoinRoom = document.getElementById("btn-join-room");
+const joinRoomPassword = document.getElementById("join-room-password");
 const btnDisconnect = document.getElementById("btn-disconnect");
+const lobbyRoomList = document.getElementById("lobby-room-list");
+const btnRefreshRooms = document.getElementById("btn-refresh-rooms");
 
 // Theme
 const themeToggles = document.querySelectorAll(".toggle-opt[data-theme]");
@@ -110,6 +116,7 @@ function showView(viewName) {
     // Auto-fetch server lists when switching to those views
     if (viewName === "official") fetchOfficialServers();
     if (viewName === "servers") fetchServerList();
+    if (viewName === "lobby") listRooms();
 }
 
 // ─── Theme ──────────────────────────────────────────────────────────────────
@@ -463,14 +470,27 @@ function resetState() {
 
 async function createRoom() {
     const name = createRoomName.value.trim() || "unnamed";
+    const hidden = createRoomHidden.checked;
+    const password = createRoomPasswordToggle.checked ? createRoomPassword.value : null;
+
+    if (createRoomPasswordToggle.checked && !createRoomPassword.value) {
+        showModal("Error", "<p>Enter a password or disable the password option.</p>");
+        return;
+    }
 
     try {
         await window.__TAURI__.core.invoke("create_room", {
             name,
             msgExpiry: null,
             fileExpiry: null,
+            hidden,
+            password,
         });
         createRoomName.value = "";
+        createRoomPassword.value = "";
+        createRoomPasswordToggle.checked = false;
+        createRoomPassword.disabled = true;
+        createRoomHidden.checked = false;
         // Room creation handled via retro://room-created event
     } catch (e) {
         showModal("Error", `<p>${e}</p>`);
@@ -481,13 +501,66 @@ async function joinRoom() {
     const roomId = joinRoomId.value.trim();
     if (!roomId) return;
 
+    const password = joinRoomPassword.value || null;
+
     try {
-        await window.__TAURI__.core.invoke("join_room", { roomId });
+        await window.__TAURI__.core.invoke("join_room", { roomId, password });
         joinRoomId.value = "";
+        joinRoomPassword.value = "";
         // Room join handled via retro://room-joined event
     } catch (e) {
         showModal("Error", `<p>${e}</p>`);
     }
+}
+
+async function listRooms() {
+    try {
+        await window.__TAURI__.core.invoke("list_rooms");
+    } catch (e) {
+        // Silently fail — list stays as-is
+    }
+}
+
+function renderRoomList(rooms) {
+    lobbyRoomList.innerHTML = "";
+
+    if (!rooms || rooms.length === 0) {
+        lobbyRoomList.innerHTML = `<div class="room-list-empty"><span>No public rooms</span></div>`;
+        return;
+    }
+
+    rooms.forEach((room) => {
+        const entry = document.createElement("div");
+        entry.className = "room-entry";
+        entry.dataset.roomId = room.room_id;
+
+        const name = document.createElement("span");
+        name.className = "room-entry-name";
+        name.textContent = room.name || room.room_id;
+
+        const meta = document.createElement("span");
+        meta.className = "room-entry-meta";
+
+        const members = document.createElement("span");
+        members.className = "room-entry-members";
+        members.textContent = `${room.member_count} online`;
+
+        const joinLabel = document.createElement("span");
+        joinLabel.className = "room-entry-join";
+        joinLabel.textContent = "Join →";
+
+        meta.appendChild(members);
+        meta.appendChild(joinLabel);
+        entry.appendChild(name);
+        entry.appendChild(meta);
+
+        entry.addEventListener("click", () => {
+            joinRoomId.value = room.room_id;
+            joinRoom();
+        });
+
+        lobbyRoomList.appendChild(entry);
+    });
 }
 
 async function leaveRoom() {
@@ -653,6 +726,12 @@ function setupEventListeners() {
         }
     });
 
+    // Room list
+    listen("retro://room-list", (event) => {
+        const { rooms } = event.payload;
+        renderRoomList(rooms);
+    });
+
     // File available
     listen("retro://file-available", (event) => {
         const { file_id, from, size } = event.payload;
@@ -802,6 +881,16 @@ createRoomName.addEventListener("keydown", (e) => {
     if (e.key === "Enter") createRoom();
 });
 
+// Lobby: Password toggle enables/disables password input
+createRoomPasswordToggle.addEventListener("change", () => {
+    createRoomPassword.disabled = !createRoomPasswordToggle.checked;
+    if (createRoomPasswordToggle.checked) {
+        createRoomPassword.focus();
+    } else {
+        createRoomPassword.value = "";
+    }
+});
+
 // Lobby: Join room
 btnJoinRoom.addEventListener("click", joinRoom);
 joinRoomId.addEventListener("keydown", (e) => {
@@ -810,6 +899,9 @@ joinRoomId.addEventListener("keydown", (e) => {
 
 // Lobby: Disconnect
 btnDisconnect.addEventListener("click", disconnectFromServer);
+
+// Lobby: Refresh rooms
+btnRefreshRooms.addEventListener("click", listRooms);
 
 // Chat: Send message
 btnSend.addEventListener("click", sendMessage);

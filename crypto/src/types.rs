@@ -115,6 +115,12 @@ pub struct RoomConfig {
     pub message_expiry_secs: u64,
     /// File auto-expiry in seconds (0 = no expiry)
     pub file_expiry_secs: u64,
+    /// If true, the room will not appear in the public room list
+    #[serde(default)]
+    pub hidden: bool,
+    /// Optional password required to join (empty = no password)
+    #[serde(default)]
+    pub password: String,
 }
 
 impl Default for RoomConfig {
@@ -123,8 +129,23 @@ impl Default for RoomConfig {
             name: String::new(),
             message_expiry_secs: 0,
             file_expiry_secs: 3600, // 1 hour default
+            hidden: false,
+            password: String::new(),
         }
     }
+}
+
+/// Summary of a room for the public room list.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RoomListEntry {
+    /// Unique room ID
+    pub room_id: String,
+    /// Room display name
+    pub name: String,
+    /// Number of members currently in the room
+    pub member_count: u32,
+    /// Room creation timestamp (unix seconds)
+    pub created_at: u64,
 }
 
 /// Information about a room member (only public keys + handle).
@@ -150,6 +171,9 @@ pub enum ClientMessage {
     /// Join an existing chat room
     JoinRoom {
         room_id: String,
+        /// SHA-256 hash of the room password (empty string hash if no password)
+        #[serde(default)]
+        password_hash: String,
     },
 
     /// Publish ephemeral public keys to room members
@@ -199,6 +223,9 @@ pub enum ClientMessage {
     CloseRoom {
         room_id: String,
     },
+
+    /// Request the list of public rooms on this server
+    ListRooms,
 }
 
 /// Messages sent from server → client.
@@ -281,6 +308,11 @@ pub enum ServerMessage {
     /// Room has been closed — all data destroyed
     RoomClosed {
         room_id: String,
+    },
+
+    /// List of public rooms on the server
+    RoomList {
+        rooms: Vec<RoomListEntry>,
     },
 
     /// Error message

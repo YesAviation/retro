@@ -116,6 +116,8 @@ pub async fn create_room(
     name: String,
     msg_expiry: Option<u64>,
     file_expiry: Option<u64>,
+    hidden: Option<bool>,
+    password: Option<String>,
     state: State<'_, Arc<ClientState>>,
 ) -> Result<(), String> {
     if !*state.connected.read().await {
@@ -126,6 +128,11 @@ pub async fn create_room(
         name,
         message_expiry_secs: msg_expiry.unwrap_or(0),
         file_expiry_secs: file_expiry.unwrap_or(3600),
+        hidden: hidden.unwrap_or(false),
+        password: match &password {
+            Some(p) if !p.is_empty() => retro_crypto::hash_password(p),
+            _ => String::new(),
+        },
     };
 
     ws::send_message(&state, &ClientMessage::CreateRoom { config }).await
@@ -140,17 +147,25 @@ pub async fn create_room(
 #[tauri::command]
 pub async fn join_room(
     room_id: String,
+    password: Option<String>,
     state: State<'_, Arc<ClientState>>,
 ) -> Result<(), String> {
     if !*state.connected.read().await {
         return Err("Not connected to any server".to_string());
     }
 
+    // Hash password before sending — plaintext never leaves the client
+    let password_hash = match &password {
+        Some(p) if !p.is_empty() => retro_crypto::hash_password(p),
+        _ => String::new(),
+    };
+
     // Send JoinRoom
     ws::send_message(
         &state,
         &ClientMessage::JoinRoom {
             room_id: room_id.clone(),
+            password_hash,
         },
     )
     .await?;
@@ -217,7 +232,17 @@ pub async fn close_room(state: State<'_, Arc<ClientState>>) -> Result<(), String
 
     Ok(())
 }
+/// Request the list of public rooms from the server.
+/// The server responds with a RoomList message, which the receive loop
+/// emits as a `retro://room-list` event.
+#[tauri::command]
+pub async fn list_rooms(state: State<'_, Arc<ClientState>>) -> Result<(), String> {
+    if !*state.connected.read().await {
+        return Err("Not connected to any server".to_string());
+    }
 
+    ws::send_message(&state, &ClientMessage::ListRooms).await
+}
 // ─── Chat ───────────────────────────────────────────────────────────────────
 
 /// Send an encrypted message to the current room.

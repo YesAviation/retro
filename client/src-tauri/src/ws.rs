@@ -594,6 +594,14 @@ where
                         );
                     }
 
+                    // ── Room List ────────────────────────────────────────
+                    ServerMessage::RoomList { rooms } => {
+                        let _ = app.emit(
+                            "retro://room-list",
+                            serde_json::json!({ "rooms": rooms }),
+                        );
+                    }
+
                     // Identity handled in connect_to_server
                     _ => {}
                 }

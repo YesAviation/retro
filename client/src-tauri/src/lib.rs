@@ -28,6 +28,7 @@ pub fn run() {
             commands::join_room,
             commands::leave_room,
             commands::close_room,
+            commands::list_rooms,
             commands::send_message,
             commands::send_dm,
             commands::list_members,

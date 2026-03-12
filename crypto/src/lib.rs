@@ -55,3 +55,13 @@ pub mod registry;
 
 pub use types::*;
 pub use keys::SessionKeys;
+
+/// Hash a password with SHA-256 and return the hex-encoded digest.
+/// Used for room password verification — plaintext never touches the wire.
+pub fn hash_password(password: &str) -> String {
+    use sha2::{Sha256, Digest};
+    let mut hasher = Sha256::new();
+    hasher.update(password.as_bytes());
+    let result = hasher.finalize();
+    result.iter().map(|b| format!("{:02x}", b)).collect()
+}
