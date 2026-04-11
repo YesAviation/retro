@@ -80,10 +80,17 @@ pub async fn connect_to_server(
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
     // Build WebSocket URL — default to encrypted wss://
+    // Auto-detect localhost/127.0.0.1/[::1] and use plain ws:// for those
     let ws_url = if host.starts_with("ws://") || host.starts_with("wss://") {
         format!("{}/ws", host.trim_end_matches('/'))
     } else {
-        format!("wss://{}/ws", host)
+        let host_part = host.split(':').next().unwrap_or(host);
+        let is_local = matches!(
+            host_part,
+            "localhost" | "127.0.0.1" | "::1" | "[::1]"
+        );
+        let scheme = if is_local { "ws" } else { "wss" };
+        format!("{}://{}/ws", scheme, host)
     };
 
     // Connect

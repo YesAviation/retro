@@ -176,17 +176,22 @@ it never will.
 
 ---
 
-## What Is Retro
-
-Retro is a desktop application for private group chat. It is built around a single idea: **the server should never be able to read your messages**, and when a conversation ends, **there should be nothing left to recover**. Retro assumes that the environments in which this program is being ran on (both client and server environments) are not compromised. Compromised, by our definition, simply means that your operating system has no virus, malware, trojans, key loggers, or any other type of program capable of infection or relay of information/data submitted by the user, to the server. Ideally, you would install this on fresh installs of supported operating systems to ensure a system free of bad programs.
+## Features of Retro (for the more serious readers)
 
 - **No accounts.** Every time you connect, you get a randomly generated anonymous handle (e.g., `anon_8f3k`). There is no registration, no email, no phone number, no identity.
+
 - **No history.** Messages exist only in the RAM of participants. The server relays opaque ciphertext blobs and never holds a decryption key. When a room is closed, all stored ciphertexts are zero-overwritten before deallocation.
+
 - **No metadata.** The server knows that *someone* connected and sent *something*, but it cannot read the content, cannot identify the user beyond the ephemeral handle, and retains nothing after disconnect.
+
 - **Ephemeral rooms.** A room exists only while participants are in it. The creator can close it at any time, triggering immediate cryptographic death — all key material and ciphertexts are destroyed on every client and on the server.
+
 - **Forward secrecy.** The group encryption key ratchets forward on every membership change. If a key is ever compromised, it reveals nothing about past messages. If a member leaves, they cannot decrypt future messages.
+
 - **Double-wrapped encryption.** Every message passes through two independent ciphers from different algorithm families (XChaCha20-Poly1305 and AES-256-GCM). An attacker must break *both* to read anything.
+
 - **Defense-in-depth key exchange.** The group key is transferred using both X25519 ECDH and RSA-4096 OAEP wrapping, signed with Ed25519. An attacker must break both key agreement schemes *and* forge a digital signature to intercept the key.
+
 - **Key Elimination** When the application, server, chat room or user disconnect occurs, the keys which unlocked the chat are obliterated. When the key is destroyed, absolutely nothing about the session is recoverable. 
 
 The UI is a monochrome CRT-aesthetic desktop app with scanline effects, phosphor glow, and screen curvature to emulate a type of retro-styled computer.

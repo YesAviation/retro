@@ -844,6 +844,19 @@ document.getElementById("btn-maximize").addEventListener("click", async () => {
     await window.__TAURI__.core.invoke("window_maximize_toggle");
 });
 
+// ─── Window Dragging ───────────────────────────────────────────────────────
+
+// Allow dragging the window from the drag region and sidebar brand
+document.getElementById("drag-region").addEventListener("mousedown", async () => {
+    await window.__TAURI__.core.invoke("window_start_drag");
+});
+
+document.getElementById("sidebar-brand").addEventListener("mousedown", async (e) => {
+    // Don't drag if clicking a window control button
+    if (e.target.closest(".window-controls")) return;
+    await window.__TAURI__.core.invoke("window_start_drag");
+});
+
 // ─── Initialize ─────────────────────────────────────────────────────────────
 
 loadTheme();

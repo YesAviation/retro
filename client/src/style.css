@@ -20,10 +20,10 @@
     --bg-surface: #111111;
     --bg-sidebar: #0d0d0d;
     --bg-input: #141414;
-    --fg: #888888;
-    --fg-bright: #cccccc;
-    --fg-dim: #555555;
-    --fg-muted: #2a2a2a;
+    --fg: #999999;
+    --fg-bright: #e0e0e0;
+    --fg-dim: #666666;
+    --fg-muted: #333333;
     --accent: #cccccc;
     --accent-dim: #888888;
     --border: #1e1e1e;
@@ -113,6 +113,11 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    cursor: grab;
+}
+
+#sidebar-brand:active {
+    cursor: grabbing;
 }
 
 .brand-text {
@@ -128,6 +133,11 @@ html, body {
     height: 32px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border);
+    cursor: grab;
+}
+
+#drag-region:active {
+    cursor: grabbing;
 }
 
 /* Window control buttons */
@@ -342,8 +352,22 @@ html, body {
     display: none;
     flex-direction: column;
     flex: 1;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding: 24px 32px;
+}
+
+/* Styled scrollbar for views */
+.view::-webkit-scrollbar {
+    width: 4px;
+}
+
+.view::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.view::-webkit-scrollbar-thumb {
+    background: var(--fg-muted);
 }
 
 .view.active {
@@ -655,6 +679,7 @@ html, body {
 
 .toggle-switch {
     width: 30px;
+    min-width: 30px;
     height: 16px;
     background: var(--bg-input);
     border: 1px solid var(--border);
@@ -662,6 +687,8 @@ html, body {
     position: relative;
     transition: all var(--transition);
     flex-shrink: 0;
+    overflow: visible;
+    display: inline-block;
 }
 
 .toggle-switch::after {
@@ -836,6 +863,7 @@ html, body {
 
 #view-chat {
     padding: 0;
+    overflow: hidden;
 }
 
 #chat-header {
@@ -1028,7 +1056,7 @@ html, body {
     font-size: 11px;
 }
 
-.toggle-switch {
+.theme-toggle {
     display: flex;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1145,8 +1173,11 @@ input:focus, button:focus {
 /* ─── CRT Scanline Filter ────────────────────────────────────────────────── */
 
 /* Scanline overlay — sits on top of everything, pointer-events:none so it
-   doesn't block clicks. Uses a repeating 2px gradient for that horizontal
-   line effect you see on old CRT monitors. */
+   doesn't block clicks. Uses a wider 4px repeating gradient so scanlines
+   fall between text lines instead of cutting through them. The thin dark
+   band is only 1px tall and low-opacity so it reads as texture, not noise.
+   On Windows (non-Retina), tight 2px lines get anti-aliased into mud —
+   wider spacing avoids that completely. */
 
 #crt-overlay {
     position: fixed;
@@ -1157,27 +1188,27 @@ input:focus, button:focus {
     background: repeating-linear-gradient(
         to bottom,
         transparent 0px,
-        transparent 1px,
-        rgba(0, 0, 0, 0.15) 1px,
-        rgba(0, 0, 0, 0.15) 2px
+        transparent 3px,
+        rgba(0, 0, 0, 0.08) 3px,
+        rgba(0, 0, 0, 0.08) 4px
     );
-    /* Curved glass inset shadow — darkens edges like light bending through a tube */
+    /* Curved glass inset shadow — softened so edge text stays readable */
     box-shadow:
-        inset 0 0 80px 20px rgba(0, 0, 0, 0.35),
-        inset 0 0 4px 1px rgba(0, 0, 0, 0.5);
+        inset 0 0 60px 10px rgba(0, 0, 0, 0.2),
+        inset 0 0 3px 1px rgba(0, 0, 0, 0.3);
 }
 
 /* Subtle screen flicker — barely noticeable but adds authenticity */
 @keyframes crt-flicker {
-    0%   { opacity: 0.97; }
-    5%   { opacity: 0.95; }
-    10%  { opacity: 0.98; }
-    15%  { opacity: 0.96; }
-    20%  { opacity: 0.99; }
-    50%  { opacity: 0.97; }
-    80%  { opacity: 0.98; }
-    90%  { opacity: 0.96; }
-    100% { opacity: 0.97; }
+    0%   { opacity: 0.98; }
+    5%   { opacity: 0.97; }
+    10%  { opacity: 0.99; }
+    15%  { opacity: 0.975; }
+    20%  { opacity: 1.0; }
+    50%  { opacity: 0.98; }
+    80%  { opacity: 0.99; }
+    90%  { opacity: 0.975; }
+    100% { opacity: 0.98; }
 }
 
 #app {
@@ -1189,7 +1220,7 @@ input:focus, button:focus {
 .theme-dark #messages .msg-handle,
 .theme-dark .brand-text,
 .theme-dark .view-header h2 {
-    text-shadow: 0 0 2px rgba(200, 200, 200, 0.15);
+    text-shadow: 0 0 3px rgba(200, 200, 200, 0.2);
 }
 
 /* Subtle vignette — darkens edges like a real CRT */
@@ -1201,26 +1232,31 @@ input:focus, button:focus {
     border-radius: 14px;
     background: radial-gradient(
         ellipse at center,
-        transparent 60%,
-        rgba(0, 0, 0, 0.25) 100%
+        transparent 65%,
+        rgba(0, 0, 0, 0.15) 100%
     );
 }
 
-/* Turn off CRT effects in light mode — scanlines look weird on white */
-.theme-light ~ #crt-overlay {
+/* Turn off CRT effects in light mode — scanlines look weird on white.
+   .theme-light is on <html>, overlay is a descendant, so use space (descendant)
+   not ~ (sibling). */
+.theme-light #crt-overlay {
     background: repeating-linear-gradient(
         to bottom,
         transparent 0px,
-        transparent 1px,
-        rgba(0, 0, 0, 0.04) 1px,
-        rgba(0, 0, 0, 0.04) 2px
+        transparent 3px,
+        rgba(0, 0, 0, 0.03) 3px,
+        rgba(0, 0, 0, 0.03) 4px
     );
+    box-shadow:
+        inset 0 0 40px 8px rgba(0, 0, 0, 0.06),
+        inset 0 0 2px 1px rgba(0, 0, 0, 0.08);
 }
 
-.theme-light ~ #crt-overlay::after {
+.theme-light #crt-overlay::after {
     background: radial-gradient(
         ellipse at center,
-        transparent 65%,
-        rgba(0, 0, 0, 0.08) 100%
+        transparent 70%,
+        rgba(0, 0, 0, 0.06) 100%
     );
 }
