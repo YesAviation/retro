@@ -2,7 +2,160 @@
 
 **Anonymous, ephemeral, end-to-end encrypted chat.**
 
-Retro is a self-hosted, ephermal chat application designed with privacy and security as the core principles. End-to-end encryption ensures that only participants active in the chat room can read and send messages. The server is simply just a relay that routes encrypted messages between clients, without having access to those messages. The user interface is a retro-styled desktop app with a monochrome CRT aesthetic. Plain and simple, full of cryptography, and zero compromises.
+## Welcome to Retro
+
+Welcome to Retro! Before you dive in, let’s talk about what this thing actually is, why it exists, and why it behaves like it does, because it's a little unusual.
+
+Retro is new.
+But Retro doesn’t know it’s new.
+
+Actually, Retro doesn’t know much at all.
+
+It doesn’t know who you are.
+It doesn’t know where you’re connecting from.
+It doesn’t know what you’re saying.
+
+And if everything is working correctly, it **never will**.
+
+Retro is basically a middleman with zero curiosity and terrible memory. It takes messages from you, hands them to someone else, and immediately forgets the whole interaction ever happened.
+
+---
+
+## So what *does* Retro do?
+
+Retro has one job:
+
+**Take your message → deliver it → ask no questions → leave.**
+
+That’s it.
+
+No accounts. No signups. No “verify your email.” No “add your phone number.” Retro doesn’t even want your name. When you connect, you get something like `anon_8f3k`.
+
+That’s you. That’s your entire “identity.”
+Not a profile. Not a history. Just a temporary label so messages don’t get lost.
+
+When you leave, the identity you were assigned is taken out of existence, just like us when we go to visit the big man in the sky.
+
+---
+
+## Messages? Never heard of them.
+
+When you send a message, Retro does something very important:
+
+**it refuses to understand it.**
+
+Your message gets unnecessarily encrypted twice (because paranoia is healthy I guess), sent through the server, and delivered to other people. The server seesnothing useful except your "address". Just encrypted noise.
+
+Retro doesn’t know if you sent:
+
+* a “hello”
+* a file
+* or the secret to perfect chocolate chip cookies
+
+It all looks the same.
+
+And Retro likes it that way.
+
+---
+
+## Chat rooms (with commitment issues)
+
+Everything in Retro happens inside chat rooms.
+
+But these aren’t cozy, permanent little spaces.
+
+These rooms are **extremely temporary**.
+
+* You join → you see messages from that moment forward
+* You leave → you lose access immediately
+* Everyone leaves → the room is **destroyed**
+
+Not archived. Not saved. Not “we’ll keep it just in case.”
+
+Destroyed.
+
+Like it tripped, fell, and landed directly into a shredder.
+
+Whatever happened in that room now only exists in the heads of the people who were there. Retro has already moved on emotionally.
+
+---
+
+## Keys: the only thing that matters
+
+When you join a room, your application generates a specific set of keys.
+
+These keys are what let you read messages. No key = no access.
+
+Now here’s where it gets fun:
+
+Every time someone joins or leaves, the keys change.
+
+* New people can’t read old messages
+* People who leave can’t read new ones
+* Old keys? **Gone. Obliterated. Zeroized.**
+
+If a key disappears, the messages it unlocked might as well have never existed.
+
+Retro doesn’t “lock” old messages away.
+
+It deletes the only thing that could ever unlock them.
+
+---
+
+## Why is it like this?
+
+Because storing information is risky.
+
+Keeping identities is risky.
+Keeping messages is risky.
+Knowing things in general? Surprisingly risky.
+
+So Retro takes a different approach:
+
+**it tries very hard to know nothing and remember nothing.**
+
+No identity → nothing to tie back to you
+No stored messages → nothing to leak later
+No server knowledge → nothing useful to steal
+
+Retro isn’t asking you to trust it.
+
+It’s designed so that even if you *didn’t* trust it… it still wouldn’t matter.
+
+---
+
+## One tiny (important) problem
+
+Retro protects your messages.
+
+It does **not** protect you from… you.
+
+If you go into a chat room and say:
+
+> “Hi, I’m Andrea, I live in Seattle, and here’s my social security number”
+
+Retro will faithfully deliver that message.
+
+It will not stop you.
+It will not judge you.
+It will quietly watch you make that decision and then forget it watched you make that decision.
+
+So yeah—talk, make friends, share ideas. Just remember:
+
+**privacy only works if you participate in it.**
+
+---
+
+## The whole idea
+
+Retro lives by a very simple philosophy:
+
+**“If it doesn’t know it, it can’t leak it.”**
+
+So it doesn’t know anything.
+
+And when everything is working right…
+it never will.
 
 ---
 
