@@ -1,0 +1,33 @@
+[package]
+name = "retro-client"
+description = "Tauri desktop client for the Retro anonymous chat application"
+version.workspace = true
+edition.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+retro-crypto = { path = "../../crypto" }
+
+# Tauri
+tauri = { version = "2", features = ["macos-private-api"] }
+tauri-plugin-shell = "2"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Async runtime & WebSocket client
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
+futures = "0.3"
+url = "2"
+
+# HTTP client (for registry + server info queries)
+reqwest = { version = "0.12", features = ["json"] }
+
+# Utilities
+rand = "0.8"
+tracing = "0.1"
+base64 = "0.22"

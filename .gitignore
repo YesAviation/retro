@@ -1,0 +1,21 @@
+/target
+node_modules/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Secrets and keys — never commit these
+.env*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# Task tracking — local only
+TODO.md
