@@ -2,7 +2,7 @@
 
 **Anonymous, ephemeral, end-to-end encrypted chat.**
 
-Retro is a desktop chat application where every session is a clean slate. No accounts, no history, no metadata. You connect, talk, and when you're done, everything is cryptographically destroyed — keys are zeroized from memory, ciphertexts are overwritten with zeros, and the room ceases to exist. Not a single person can intercept messages or read them without the keys, and the keys exist only in the RAM of the participants for the duration of the session.
+Retro is a self-hosted, ephermal chat application designed with privacy and security as the core principles. End-to-end encryption ensures that only participants active in the chat room can read and send messages. The server is simply just a relay that routes encrypted messages between clients, without having access to those messages. The user interface is a retro-styled desktop app with a monochrome CRT aesthetic. Plain and simple, full of cryptography, and zero compromises.
 
 ---
 
