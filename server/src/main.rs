@@ -30,6 +30,7 @@ use std::net::SocketAddr;
 
 use axum::{extract::State as AxumState, response::IntoResponse, routing::get, Json, Router};
 use clap::Parser;
+use tokio::signal;
 use tracing_subscriber::EnvFilter;
 
 use crate::state::AppState;
@@ -40,7 +41,7 @@ use crate::state::AppState;
 #[derive(Parser, Debug, Clone)]
 #[command(name = "retro-server", about = "Retro anonymous chat relay server")]
 struct Args {
-    /// Port to listen on
+    /// Hardcoded port; Must decide if I really want this to be configurable
     #[arg(short, long, default_value_t = 9300)]
     port: u16,
 
@@ -52,14 +53,17 @@ struct Args {
     #[arg(long, default_value = "")]
     description: String,
 
+    // Server Admin Configurable
     /// Maximum number of concurrent users (0 = unlimited)
     #[arg(long, default_value_t = 0)]
     max_players: u32,
 
+    // Server Admin Configurable
     /// Maximum number of rooms (0 = unlimited)
     #[arg(long, default_value_t = 0)]
     max_rooms: u32,
 
+    // Server Admin Configurable
     /// Maximum message size in bytes (default: 64 KB)
     #[arg(long, default_value_t = 65536)]
     max_message_size: usize,
@@ -68,6 +72,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
     // Initialize tracing (server operational logs only — NEVER user data)
+    // Useful for dev purposes but shouldn't be enabled in production to avoid any risk of logging
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
@@ -100,8 +105,49 @@ async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], args.port));
     tracing::info!("Listening on {}", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            tracing::error!("Failed to bind to {}: {}", addr, e);
+            std::process::exit(1);
+        }
+    };
+
+    // Graceful shutdown on SIGTERM / SIGINT / Ctrl+C
+    let serve = axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal());
+
+    if let Err(e) = serve.await {
+        tracing::error!("Server error: {}", e);
+        std::process::exit(1);
+    }
+
+    tracing::info!("Server shut down gracefully");
+}
+
+/// Wait for a shutdown signal (Ctrl+C or SIGTERM).
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("Failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => { tracing::info!("Received Ctrl+C, shutting down..."); }
+        _ = terminate => { tracing::info!("Received SIGTERM, shutting down..."); }
+    }
 }
 
 // ─── Server Info Endpoint ───────────────────────────────────────────────────

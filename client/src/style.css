@@ -1028,7 +1028,19 @@ html, body {
 /* ─── Settings ───────────────────────────────────────────────────────────── */
 
 .settings-section {
-    max-width: 400px;
+    max-width: 480px;
+    margin-bottom: 8px;
+}
+
+.settings-section-title {
+    color: var(--fg-dim);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 12px 0 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
 }
 
 .setting-row {
@@ -1037,12 +1049,14 @@ html, body {
     justify-content: space-between;
     padding: 16px 0;
     border-bottom: 1px solid var(--border);
+    gap: 16px;
 }
 
 .setting-info {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
 }
 
 .setting-label {
@@ -1061,6 +1075,7 @@ html, body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .toggle-opt {
@@ -1072,10 +1087,11 @@ html, body {
     font-size: 11px;
     cursor: pointer;
     transition: background var(--transition), color var(--transition);
+    border-right: 1px solid var(--border);
 }
 
-.toggle-opt:first-child {
-    border-right: 1px solid var(--border);
+.toggle-opt:last-child {
+    border-right: none;
 }
 
 .toggle-opt.active {
@@ -1087,6 +1103,45 @@ html, body {
 .toggle-opt:hover:not(.active) {
     background: var(--hover-bg);
     color: var(--fg);
+}
+
+/* Settings toggle (checkbox switch aligned right) */
+.setting-toggle {
+    flex-shrink: 0;
+}
+
+/* Language select dropdown */
+.settings-select {
+    padding: 6px 28px 6px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--fg-bright);
+    font-family: var(--font-family);
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23666' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    flex-shrink: 0;
+    min-width: 140px;
+    transition: border-color var(--transition);
+}
+
+.settings-select:hover {
+    border-color: var(--fg-dim);
+}
+
+.settings-select:focus {
+    border-color: var(--fg-dim);
+}
+
+.settings-select option {
+    background: var(--bg-surface);
+    color: var(--fg-bright);
 }
 
 /* ─── Modal ──────────────────────────────────────────────────────────────── */
@@ -1259,4 +1314,163 @@ input:focus, button:focus {
         transparent 70%,
         rgba(0, 0, 0, 0.06) 100%
     );
+}
+
+/* ─── Font Size Variants ────────────────────────────────────────────────── */
+
+.font-small {
+    --font-size: 11px;
+    --line-height: 1.5;
+}
+
+.font-medium {
+    --font-size: 13px;
+    --line-height: 1.6;
+}
+
+.font-large {
+    --font-size: 15px;
+    --line-height: 1.7;
+}
+
+/* ─── Reduced Motion ────────────────────────────────────────────────────── */
+
+.reduced-motion,
+.reduced-motion * {
+    animation: none !important;
+    transition: none !important;
+}
+
+/* Also respect OS-level prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    :root:not(.motion-override) *,
+    :root:not(.motion-override) {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ─── High Contrast Mode ────────────────────────────────────────────────── */
+
+.high-contrast {
+    --fg: #cccccc;
+    --fg-bright: #ffffff;
+    --fg-dim: #aaaaaa;
+    --fg-muted: #777777;
+    --border: #555555;
+    --border-light: #666666;
+    --accent: #ffffff;
+    --accent-dim: #cccccc;
+}
+
+.high-contrast.theme-light {
+    --fg: #333333;
+    --fg-bright: #000000;
+    --fg-dim: #444444;
+    --fg-muted: #666666;
+    --border: #888888;
+    --border-light: #999999;
+    --accent: #000000;
+    --accent-dim: #333333;
+}
+
+/* Respect OS-level high contrast preference */
+@media (prefers-contrast: more) {
+    :root:not(.contrast-override) {
+        --fg: #cccccc;
+        --fg-bright: #ffffff;
+        --fg-dim: #aaaaaa;
+        --fg-muted: #777777;
+        --border: #555555;
+        --border-light: #666666;
+    }
+    :root:not(.contrast-override).theme-light {
+        --fg: #333333;
+        --fg-bright: #000000;
+        --fg-dim: #444444;
+        --fg-muted: #666666;
+        --border: #888888;
+        --border-light: #999999;
+    }
+}
+
+/* ─── Focus Visibility ──────────────────────────────────────────────────── */
+
+/* Show visible focus rings for keyboard navigation */
+:focus-visible {
+    outline: 2px solid var(--fg-dim);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--fg-dim);
+    outline-offset: 2px;
+}
+
+/* ─── Skip Link ─────────────────────────────────────────────────────────── */
+
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 16px;
+    z-index: 10000;
+    padding: 8px 16px;
+    background: var(--fg-bright);
+    color: var(--bg);
+    font-family: var(--font-family);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: var(--radius);
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 8px;
+}
+
+/* ─── Screen Reader Only ────────────────────────────────────────────────── */
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ─── RTL Support ───────────────────────────────────────────────────────── */
+
+[dir="rtl"] #sidebar {
+    border-right: none;
+    border-left: 1px solid var(--border);
+}
+
+[dir="rtl"] .nav-btn {
+    text-align: right;
+}
+
+[dir="rtl"] #sidebar-brand {
+    padding: 12px 16px 12px 12px;
+}
+
+[dir="rtl"] .room-entry-meta {
+    margin-left: 0;
+    margin-right: 12px;
+}
+
+[dir="rtl"] .server-card-meta {
+    margin-left: 0;
+    margin-right: 16px;
+}
+
+[dir="rtl"] .settings-select {
+    padding: 6px 10px 6px 28px;
+    background-position: left 8px center;
 }

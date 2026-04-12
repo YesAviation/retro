@@ -231,8 +231,11 @@ Retro is a Cargo workspace with four crates:
 ```
 
 - **retro-crypto** — Pure Rust cryptographic library. Key generation, double-wrapped encryption, key exchange, group key ratchet, protocol message types. 21 unit tests.
+
 - **retro-server** — Axum 0.8 WebSocket server. Routes messages between clients, manages ephemeral rooms, runs background cleanup (zero-overwrite expired ciphertexts). Holds no encryption keys.
+
 - **retro-registry** — Optional Axum service for server discovery. Servers send periodic heartbeats; clients can fetch the server list.
+
 - **retro-client** — Tauri 2 desktop application. Plain HTML/CSS/JS frontend with a Rust backend that handles all cryptographic operations. The Rust side connects via WebSocket, generates keys, encrypts/decrypts messages, and manages the key ratchet. The JS side handles UI only.
 
 ---

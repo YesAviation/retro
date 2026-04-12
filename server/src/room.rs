@@ -110,7 +110,7 @@ impl Room {
         }
 
         // Broadcast MemberJoined to all OTHER members (triggers key ratchet on their side)
-        let join_msg = serde_json::to_string(&ServerMessage::MemberJoined {
+        if let Ok(join_msg) = serde_json::to_string(&ServerMessage::MemberJoined {
             room_id: self.id.clone(),
             member: MemberInfo {
                 handle: handle.clone(),
@@ -120,12 +120,11 @@ impl Room {
                     rsa: String::new(),
                 },
             },
-        })
-        .unwrap();
-
-        for (h, conn) in members.iter() {
-            if h != &handle {
-                let _ = conn.tx.send(join_msg.clone());
+        }) {
+            for (h, conn) in members.iter() {
+                if h != &handle {
+                    let _ = conn.tx.send(join_msg.clone());
+                }
             }
         }
 
@@ -141,14 +140,13 @@ impl Room {
 
         // Broadcast MemberLeft to all remaining members (triggers key ratchet)
         if !is_empty {
-            let leave_msg = serde_json::to_string(&ServerMessage::MemberLeft {
+            if let Ok(leave_msg) = serde_json::to_string(&ServerMessage::MemberLeft {
                 room_id: self.id.clone(),
                 handle: handle.to_string(),
-            })
-            .unwrap();
-
-            for (_, conn) in members.iter() {
-                let _ = conn.tx.send(leave_msg.clone());
+            }) {
+                for (_, conn) in members.iter() {
+                    let _ = conn.tx.send(leave_msg.clone());
+                }
             }
         }
 

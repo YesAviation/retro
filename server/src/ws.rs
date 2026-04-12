@@ -37,6 +37,17 @@ use retro_crypto::{ClientMessage, RoomListEntry, ServerMessage};
 
 use crate::state::AppState;
 
+/// Serialize a ServerMessage to JSON, logging on the (theoretically impossible) failure case.
+fn serialize_msg(msg: &ServerMessage) -> Option<String> {
+    match serde_json::to_string(msg) {
+        Ok(s) => Some(s),
+        Err(e) => {
+            tracing::error!("Failed to serialize server message: {}", e);
+            None
+        }
+    }
+}
+
 /// Per-connection rate limiter.
 ///
 /// Uses a simple token bucket: `tokens_per_second` tokens refill per second,
@@ -107,11 +118,11 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
     let (tx, mut rx) = mpsc::unbounded_channel::<String>();
 
     // Send identity to client
-    let identity_msg = serde_json::to_string(&ServerMessage::Identity {
+    if let Some(identity_msg) = serialize_msg(&ServerMessage::Identity {
         handle: handle.clone(),
-    })
-    .unwrap();
-    let _ = ws_sender.send(Message::Text(identity_msg.into())).await;
+    }) {
+        let _ = ws_sender.send(Message::Text(identity_msg.into())).await;
+    }
 
     // Spawn task to forward messages from channel to WebSocket
     let mut send_task = tokio::spawn(async move {
@@ -142,10 +153,9 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                     // Enforce message size limit
                     if text.len() > max_msg_size {
                         let _ = tx.send(
-                            serde_json::to_string(&ServerMessage::Error {
+                            serialize_msg(&ServerMessage::Error {
                                 message: "Message too large".to_string(),
-                            })
-                            .unwrap(),
+                            }).unwrap_or_default(),
                         );
                         continue;
                     }
@@ -153,10 +163,9 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                     // Enforce rate limit
                     if !rate_limiter.allow() {
                         let _ = tx.send(
-                            serde_json::to_string(&ServerMessage::Error {
+                            serialize_msg(&ServerMessage::Error {
                                 message: "Rate limited — slow down".to_string(),
-                            })
-                            .unwrap(),
+                            }).unwrap_or_default(),
                         );
                         continue;
                     }
@@ -165,10 +174,9 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                         Ok(m) => m,
                         Err(e) => {
                             let _ = tx.send(
-                                serde_json::to_string(&ServerMessage::Error {
+                                serialize_msg(&ServerMessage::Error {
                                     message: format!("Invalid message: {}", e),
-                                })
-                                .unwrap(),
+                                }).unwrap_or_default(),
                             );
                             continue;
                         }
@@ -178,22 +186,16 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                         // ── Create Room ──────────────────────────────────
                         ClientMessage::CreateRoom { config } => {
                             if !room_rate_limiter.allow() {
-                                let _ = tx.send(
-                                    serde_json::to_string(&ServerMessage::Error {
-                                        message: "Room creation rate limited".to_string(),
-                                    })
-                                    .unwrap(),
-                                );
+                                if let Some(msg) = serialize_msg(&ServerMessage::Error {
+                                    message: "Room creation rate limited".to_string(),
+                                }) { let _ = tx.send(msg); }
                                 continue;
                             }
 
                             if !recv_state.can_create_room() {
-                                let _ = tx.send(
-                                    serde_json::to_string(&ServerMessage::Error {
-                                        message: "Server room limit reached".to_string(),
-                                    })
-                                    .unwrap(),
-                                );
+                                if let Some(msg) = serialize_msg(&ServerMessage::Error {
+                                    message: "Server room limit reached".to_string(),
+                                }) { let _ = tx.send(msg); }
                                 continue;
                             }
 
@@ -208,12 +210,12 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                             let created_at = recv_state.rooms().get(&room_id)
                                 .map(|r| r.created_at).unwrap_or(0);
 
-                            let response = serde_json::to_string(&ServerMessage::RoomCreated {
+                            if let Some(response) = serialize_msg(&ServerMessage::RoomCreated {
                                 room_id,
                                 created_at,
-                            })
-                            .unwrap();
-                            let _ = tx.send(response);
+                            }) {
+                                let _ = tx.send(response);
+                            }
                         }
 
                         // ── Join Room ────────────────────────────────────
@@ -221,27 +223,18 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                             if let Some(room) = recv_state.rooms().get(&room_id) {
                                 // Check room capacity
                                 if !room.can_accept_member().await {
-                                    let _ = tx.send(
-                                        serde_json::to_string(&ServerMessage::Error {
-                                            message: "Room is full".to_string(),
-                                        })
-                                        .unwrap(),
-                                    );
+                                    if let Some(msg) = serialize_msg(&ServerMessage::Error {
+                                        message: "Room is full".to_string(),
+                                    }) { let _ = tx.send(msg); }
                                     continue;
                                 }
 
                                 // Verify password if the room has one.
-                                // The stored password is an Argon2id PHC string.
-                                // The client sends a plaintext password, which we
-                                // verify against the stored hash.
                                 if !room.config.password.is_empty() {
                                     if !retro_crypto::verify_password(&password_hash, &room.config.password) {
-                                        let _ = tx.send(
-                                            serde_json::to_string(&ServerMessage::Error {
-                                                message: "Incorrect room password".to_string(),
-                                            })
-                                            .unwrap(),
-                                        );
+                                        if let Some(msg) = serialize_msg(&ServerMessage::Error {
+                                            message: "Incorrect room password".to_string(),
+                                        }) { let _ = tx.send(msg); }
                                         continue;
                                     }
                                 }
@@ -256,23 +249,19 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                                 let is_creator = room.is_creator(&recv_handle).await;
                                 let created_at = room.created_at;
 
-                                let response =
-                                    serde_json::to_string(&ServerMessage::RoomJoined {
-                                        room_id,
-                                        members: member_list,
-                                        config: room.config.clone(),
-                                        is_creator,
-                                        created_at,
-                                    })
-                                    .unwrap();
-                                let _ = tx.send(response);
+                                if let Some(response) = serialize_msg(&ServerMessage::RoomJoined {
+                                    room_id,
+                                    members: member_list,
+                                    config: room.config.clone(),
+                                    is_creator,
+                                    created_at,
+                                }) {
+                                    let _ = tx.send(response);
+                                }
                             } else {
-                                let _ = tx.send(
-                                    serde_json::to_string(&ServerMessage::Error {
-                                        message: "Room not found".to_string(),
-                                    })
-                                    .unwrap(),
-                                );
+                                if let Some(msg) = serialize_msg(&ServerMessage::Error {
+                                    message: "Room not found".to_string(),
+                                }) { let _ = tx.send(msg); }
                             }
                         }
 
@@ -282,7 +271,6 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                             public_keys,
                         } => {
                             if let Some(room) = recv_state.rooms().get(&room_id) {
-                                // Membership check
                                 if !room.is_member(&recv_handle).await {
                                     continue;
                                 }
@@ -290,14 +278,13 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                                 room.set_member_keys(&recv_handle, public_keys.clone())
                                     .await;
 
-                                let msg =
-                                    serde_json::to_string(&ServerMessage::MemberKeys {
-                                        room_id,
-                                        from: recv_handle.clone(),
-                                        public_keys,
-                                    })
-                                    .unwrap();
-                                room.broadcast_except(&msg, &recv_handle).await;
+                                if let Some(msg) = serialize_msg(&ServerMessage::MemberKeys {
+                                    room_id,
+                                    from: recv_handle.clone(),
+                                    public_keys,
+                                }) {
+                                    room.broadcast_except(&msg, &recv_handle).await;
+                                }
                             }
                         }
 
@@ -308,19 +295,17 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                             payload,
                         } => {
                             if let Some(room) = recv_state.rooms().get(&room_id) {
-                                // Membership check
                                 if !room.is_member(&recv_handle).await {
                                     continue;
                                 }
 
-                                let msg =
-                                    serde_json::to_string(&ServerMessage::KeyExchange {
-                                        room_id,
-                                        from: recv_handle.clone(),
-                                        payload,
-                                    })
-                                    .unwrap();
-                                room.send_to_member(&recipient, &msg).await;
+                                if let Some(msg) = serialize_msg(&ServerMessage::KeyExchange {
+                                    room_id,
+                                    from: recv_handle.clone(),
+                                    payload,
+                                }) {
+                                    room.send_to_member(&recipient, &msg).await;
+                                }
                             }
                         }
 
@@ -329,23 +314,20 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                             if let Some(room) = recv_state.rooms().get(&room_id) {
                                 // Membership check — only room members can send
                                 if !room.is_member(&recv_handle).await {
-                                    let _ = tx.send(
-                                        serde_json::to_string(&ServerMessage::Error {
-                                            message: "Not a member of this room".to_string(),
-                                        })
-                                        .unwrap(),
-                                    );
+                                    if let Some(msg) = serialize_msg(&ServerMessage::Error {
+                                        message: "Not a member of this room".to_string(),
+                                    }) { let _ = tx.send(msg); }
                                     continue;
                                 }
 
                                 // Store the ciphertext blob
-                                let ciphertext_json =
-                                    serde_json::to_string(&payload).unwrap();
-                                room.store_message(
-                                    recv_handle.clone(),
-                                    ciphertext_json,
-                                )
-                                .await;
+                                if let Ok(ciphertext_json) = serde_json::to_string(&payload) {
+                                    room.store_message(
+                                        recv_handle.clone(),
+                                        ciphertext_json,
+                                    )
+                                    .await;
+                                }
 
                                 // Broadcast to all members EXCEPT sender
                                 let timestamp = std::time::SystemTime::now()
@@ -353,15 +335,14 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                                     .unwrap_or_default()
                                     .as_secs();
 
-                                let msg =
-                                    serde_json::to_string(&ServerMessage::Message {
-                                        room_id,
-                                        from: recv_handle.clone(),
-                                        payload,
-                                        timestamp,
-                                    })
-                                    .unwrap();
-                                room.broadcast_except(&msg, &recv_handle).await;
+                                if let Some(msg) = serialize_msg(&ServerMessage::Message {
+                                    room_id,
+                                    from: recv_handle.clone(),
+                                    payload,
+                                    timestamp,
+                                }) {
+                                    room.broadcast_except(&msg, &recv_handle).await;
+                                }
                             }
                         }
 
@@ -372,19 +353,17 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                             payload,
                         } => {
                             if let Some(room) = recv_state.rooms().get(&room_id) {
-                                // Membership check
                                 if !room.is_member(&recv_handle).await {
                                     continue;
                                 }
 
-                                let msg =
-                                    serde_json::to_string(&ServerMessage::DirectMessage {
-                                        room_id,
-                                        from: recv_handle.clone(),
-                                        payload,
-                                    })
-                                    .unwrap();
-                                room.send_to_member(&recipient, &msg).await;
+                                if let Some(msg) = serialize_msg(&ServerMessage::DirectMessage {
+                                    room_id,
+                                    from: recv_handle.clone(),
+                                    payload,
+                                }) {
+                                    room.send_to_member(&recipient, &msg).await;
+                                }
                             }
                         }
 
@@ -392,7 +371,6 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                         ClientMessage::LeaveRoom { room_id } => {
                             if let Some(room) = recv_state.rooms().get(&room_id) {
                                 let is_empty = room.remove_member(&recv_handle).await;
-                                // Auto-destroy empty rooms
                                 if is_empty {
                                     drop(room);
                                     recv_state.destroy_room(&room_id);
@@ -416,27 +394,24 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                                 if let Some(room) =
                                     recv_state.rooms().get(&room_id)
                                 {
-                                    let close_msg = serde_json::to_string(
+                                    if let Some(close_msg) = serialize_msg(
                                         &ServerMessage::RoomClosed {
                                             room_id: room_id.clone(),
                                         },
-                                    )
-                                    .unwrap();
-                                    room.broadcast(&close_msg).await;
+                                    ) {
+                                        room.broadcast(&close_msg).await;
+                                    }
                                 }
 
                                 // Cryptographic death
                                 recv_state.destroy_room(&room_id);
                                 rooms.retain(|r| r != &room_id);
                             } else {
-                                let _ = tx.send(
-                                    serde_json::to_string(&ServerMessage::Error {
-                                        message:
-                                            "Only the room creator can close the room"
-                                                .to_string(),
-                                    })
-                                    .unwrap(),
-                                );
+                                if let Some(msg) = serialize_msg(&ServerMessage::Error {
+                                    message:
+                                        "Only the room creator can close the room"
+                                            .to_string(),
+                                }) { let _ = tx.send(msg); }
                             }
                         }
 
@@ -445,7 +420,6 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                             let mut entries = Vec::new();
                             for entry in recv_state.rooms().iter() {
                                 let room = entry.value();
-                                // Skip hidden rooms and password-protected rooms
                                 if room.config.hidden || !room.config.password.is_empty() {
                                     continue;
                                 }
@@ -461,11 +435,11 @@ async fn handle_connection(socket: WebSocket, state: AppState) {
                                     created_at: room.created_at,
                                 });
                             }
-                            let response = serde_json::to_string(
+                            if let Some(response) = serialize_msg(
                                 &ServerMessage::RoomList { rooms: entries },
-                            )
-                            .unwrap();
-                            let _ = tx.send(response);
+                            ) {
+                                let _ = tx.send(response);
+                            }
                         }
                     }
                 }

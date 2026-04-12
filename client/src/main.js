@@ -68,6 +68,20 @@ const modalTitle = document.getElementById("modal-title");
 const modalBody = document.getElementById("modal-body");
 const modalClose = document.getElementById("modal-close");
 
+// Settings — Language
+const languageSelect = document.getElementById("language-select");
+
+// Settings — Accessibility
+const fontSizeToggles = document.querySelectorAll(".toggle-opt[data-fontsize]");
+const reducedMotionToggle = document.getElementById("reduced-motion-toggle");
+
+// Screen reader announcements
+const srAnnouncements = document.getElementById("sr-announcements");
+const srErrors = document.getElementById("sr-errors");
+
+// Settings — High Contrast
+const highContrastToggle = document.getElementById("high-contrast-toggle");
+
 // ─── State ──────────────────────────────────────────────────────────────────
 
 const state = {
@@ -82,6 +96,23 @@ const state = {
     roomCreatedAt: null,
     ageTimer: null,
 };
+
+// ─── Screen Reader Announcements ────────────────────────────────────────────
+
+function announce(message) {
+    if (srAnnouncements) {
+        srAnnouncements.textContent = message;
+    }
+}
+
+/** Assertive announcement for errors — interrupts screen reader */
+function announceError(message) {
+    if (srErrors) {
+        srErrors.textContent = "";
+        // Force re-announcement by clearing then setting in next frame
+        requestAnimationFrame(() => { srErrors.textContent = message; });
+    }
+}
 
 // ─── HTML Escaping ──────────────────────────────────────────────────────────
 
@@ -118,6 +149,16 @@ function showView(viewName) {
     state.currentView = viewName;
 
     if (viewName === "lobby") listRooms();
+
+    // Move focus to the new view's heading for screen reader users
+    const activeView = views[viewName];
+    if (activeView) {
+        const heading = activeView.querySelector("h2, #chat-room-name");
+        if (heading) {
+            heading.setAttribute("tabindex", "-1");
+            heading.focus({ preventScroll: true });
+        }
+    }
 }
 
 // ─── Theme ──────────────────────────────────────────────────────────────────
@@ -129,7 +170,9 @@ function setTheme(theme) {
 
     // Update toggle buttons
     themeToggles.forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.theme === theme);
+        const isActive = btn.dataset.theme === theme;
+        btn.classList.toggle("active", isActive);
+        btn.setAttribute("aria-checked", isActive ? "true" : "false");
     });
 
     localStorage.setItem("retro-theme", theme);
@@ -140,15 +183,99 @@ function loadTheme() {
     setTheme(saved || "dark");
 }
 
+// ─── Font Size ──────────────────────────────────────────────────────────────
+
+function setFontSize(size) {
+    const root = document.documentElement;
+    root.classList.remove("font-small", "font-medium", "font-large");
+    root.classList.add(`font-${size}`);
+
+    fontSizeToggles.forEach((btn) => {
+        const isActive = btn.dataset.fontsize === size;
+        btn.classList.toggle("active", isActive);
+        btn.setAttribute("aria-checked", isActive ? "true" : "false");
+    });
+
+    localStorage.setItem("retro-font-size", size);
+}
+
+function loadFontSize() {
+    const saved = localStorage.getItem("retro-font-size");
+    setFontSize(saved || "medium");
+}
+
+// ─── Reduced Motion ─────────────────────────────────────────────────────────
+
+function setReducedMotion(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+        root.classList.add("reduced-motion");
+    } else {
+        root.classList.remove("reduced-motion");
+    }
+    reducedMotionToggle.checked = enabled;
+    localStorage.setItem("retro-reduced-motion", enabled ? "1" : "0");
+}
+
+function loadReducedMotion() {
+    const saved = localStorage.getItem("retro-reduced-motion");
+    // Respect OS preference if no saved setting
+    if (saved === null) {
+        const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        setReducedMotion(prefersReduced);
+    } else {
+        setReducedMotion(saved === "1");
+    }
+}
+
+// ─── High Contrast ─────────────────────────────────────────────────────
+
+function setHighContrast(enabled) {
+    const root = document.documentElement;
+    if (enabled) {
+        root.classList.add("high-contrast");
+    } else {
+        root.classList.remove("high-contrast");
+    }
+    highContrastToggle.checked = enabled;
+    localStorage.setItem("retro-high-contrast", enabled ? "1" : "0");
+}
+
+function loadHighContrast() {
+    const saved = localStorage.getItem("retro-high-contrast");
+    if (saved === null) {
+        const prefersContrast = window.matchMedia("(prefers-contrast: more)").matches;
+        setHighContrast(prefersContrast);
+    } else {
+        setHighContrast(saved === "1");
+    }
+}
+
+// ─── Language ───────────────────────────────────────────────────────────────
+
+function populateLanguageSelect() {
+    const locales = i18n.getSupportedLocales();
+    languageSelect.innerHTML = "";
+
+    Object.entries(locales).forEach(([code, name]) => {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = name;
+        languageSelect.appendChild(option);
+    });
+
+    languageSelect.value = i18n.getLocale();
+}
+
 // ─── Connection Status ──────────────────────────────────────────────────────
 
 function updateConnectionStatus() {
     if (state.connected) {
         statusDot.className = "dot-connected";
-        statusText.textContent = state.serverAddress || "Connected";
+        statusText.textContent = state.serverAddress || i18n.t("status.connected");
     } else {
         statusDot.className = "dot-disconnected";
-        statusText.textContent = "Not connected";
+        statusText.textContent = i18n.t("status.not_connected");
     }
     updateSessionButton();
 }
@@ -160,9 +287,9 @@ function updateSessionButton() {
     }
     btnSession.classList.remove("hidden");
     if (state.currentRoom) {
-        btnSessionLabel.textContent = "Chat Room";
+        btnSessionLabel.textContent = i18n.t("chat.session_chat");
     } else {
-        btnSessionLabel.textContent = "Lobby";
+        btnSessionLabel.textContent = i18n.t("chat.session_lobby");
     }
 }
 
@@ -191,7 +318,7 @@ function updateMemberList() {
         if (member.handle === state.handle) {
             const youSpan = document.createElement("span");
             youSpan.className = "member-you";
-            youSpan.textContent = " (you)";
+            youSpan.textContent = " " + i18n.t("chat.you");
             li.appendChild(youSpan);
         }
 
@@ -204,14 +331,18 @@ function updateMemberList() {
 function addMessage(handle, text) {
     const div = document.createElement("div");
     div.className = "msg";
+    div.setAttribute("role", "listitem");
+    div.setAttribute("aria-label", `${handle}: ${text}`);
 
     const h = document.createElement("span");
     h.className = "msg-handle";
     h.textContent = `${handle} `;
+    h.setAttribute("aria-hidden", "true");
 
     const t = document.createElement("span");
     t.className = "msg-text";
     t.textContent = text;
+    t.setAttribute("aria-hidden", "true");
 
     div.appendChild(h);
     div.appendChild(t);
@@ -222,13 +353,20 @@ function addMessage(handle, text) {
 function addDM(from, text, outgoing) {
     const div = document.createElement("div");
     div.className = "msg msg-dm";
+    div.setAttribute("role", "listitem");
+    const dmLabel = outgoing
+        ? i18n.t("chat.dm_to", { handle: from })
+        : i18n.t("chat.dm_from", { handle: from });
+    div.setAttribute("aria-label", `${dmLabel}${text}`);
 
     const label = document.createElement("span");
     label.className = "msg-label";
-    label.textContent = outgoing ? `DM to ${from}: ` : `DM from ${from}: `;
+    label.textContent = dmLabel;
+    label.setAttribute("aria-hidden", "true");
 
     const t = document.createElement("span");
     t.textContent = text;
+    t.setAttribute("aria-hidden", "true");
 
     div.appendChild(label);
     div.appendChild(t);
@@ -239,6 +377,7 @@ function addDM(from, text, outgoing) {
 function addSystemMessage(text) {
     const div = document.createElement("div");
     div.className = "msg msg-system";
+    div.setAttribute("role", "listitem");
     div.textContent = text;
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -247,9 +386,11 @@ function addSystemMessage(text) {
 function addErrorMessage(text) {
     const div = document.createElement("div");
     div.className = "msg msg-error";
+    div.setAttribute("role", "listitem");
     div.textContent = text;
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
+    announceError(text);
 }
 
 // ─── Room Age & Close Button ────────────────────────────────────────────────
@@ -302,7 +443,10 @@ function stopAgeTimer() {
 
 async function connectToServer(address) {
     if (state.connected) {
-        showModal("Already Connected", "You're already connected to " + state.serverAddress + ". Disconnect first.");
+        showModal(
+            i18n.t("modal.already_connected_title"),
+            i18n.t("modal.already_connected_body", { address: state.serverAddress })
+        );
         return;
     }
 
@@ -311,7 +455,10 @@ async function connectToServer(address) {
     if (!host) return;
 
     // Show a connecting indicator in the modal
-    showModal("Connecting", "Establishing secure connection to " + host + "...\nGenerating RSA-4096 keys...");
+    showModal(
+        i18n.t("modal.connecting_title"),
+        i18n.t("modal.connecting_body", { host })
+    );
 
     try {
         const handle = await window.__TAURI__.core.invoke("connect", { host });
@@ -322,13 +469,16 @@ async function connectToServer(address) {
 
         updateConnectionStatus();
         hideModal();
+        announce(i18n.t("lobby.connected_as", { handle }));
 
         // Switch to lobby view
         lobbyServerName.textContent = host;
-        lobbyHandle.textContent = `Connected as ${handle}`;
+        lobbyHandle.textContent = i18n.t("lobby.connected_as", { handle });
         showView("lobby");
     } catch (e) {
-        showModal("Connection Failed", String(e));
+        const msg = String(e);
+        showModal(i18n.t("modal.connection_failed"), msg);
+        announceError(`${i18n.t("modal.connection_failed")}: ${msg}`);
     }
 }
 
@@ -341,6 +491,7 @@ async function disconnectFromServer() {
 
     resetState();
     showView("home");
+    announce(i18n.t("chat.disconnected"));
 }
 
 function resetState() {
@@ -366,7 +517,7 @@ async function createRoom() {
     const password = createRoomPasswordToggle.checked ? createRoomPassword.value : null;
 
     if (createRoomPasswordToggle.checked && !createRoomPassword.value) {
-        showModal("Error", "Enter a password or disable the password option.");
+        showModal(i18n.t("modal.error"), i18n.t("modal.password_required"));
         return;
     }
 
@@ -383,7 +534,7 @@ async function createRoom() {
         createRoomPassword.disabled = true;
         createRoomHidden.checked = false;
     } catch (e) {
-        showModal("Error", String(e));
+        showModal(i18n.t("modal.error"), String(e));
     }
 }
 
@@ -398,7 +549,7 @@ async function joinRoom() {
         joinRoomId.value = "";
         joinRoomPassword.value = "";
     } catch (e) {
-        showModal("Error", String(e));
+        showModal(i18n.t("modal.error"), String(e));
     }
 }
 
@@ -417,7 +568,7 @@ function renderRoomList(rooms) {
         const empty = document.createElement("div");
         empty.className = "room-list-empty";
         const span = document.createElement("span");
-        span.textContent = "No public rooms";
+        span.textContent = i18n.t("lobby.no_public_rooms");
         empty.appendChild(span);
         lobbyRoomList.appendChild(empty);
         return;
@@ -427,6 +578,7 @@ function renderRoomList(rooms) {
         const entry = document.createElement("div");
         entry.className = "room-entry";
         entry.dataset.roomId = room.room_id;
+        entry.setAttribute("role", "listitem");
 
         const name = document.createElement("span");
         name.className = "room-entry-name";
@@ -437,11 +589,11 @@ function renderRoomList(rooms) {
 
         const members = document.createElement("span");
         members.className = "room-entry-members";
-        members.textContent = `${room.member_count} online`;
+        members.textContent = i18n.t("lobby.online", { count: room.member_count });
 
         const joinLabel = document.createElement("span");
         joinLabel.className = "room-entry-join";
-        joinLabel.textContent = "Join";
+        joinLabel.textContent = i18n.t("lobby.join");
 
         meta.appendChild(members);
         meta.appendChild(joinLabel);
@@ -474,7 +626,7 @@ async function leaveRoom() {
         updateRoomSection();
         showView("lobby");
     } catch (e) {
-        showModal("Error", String(e));
+        showModal(i18n.t("modal.error"), String(e));
     }
 }
 
@@ -483,9 +635,9 @@ async function closeRoom() {
 
     // Confirmation modal with safe DOM construction
     showModalWithConfirm(
-        "Close Room?",
-        "This will permanently destroy all messages and encryption keys for this room. This action cannot be undone.",
-        "Destroy Room",
+        i18n.t("modal.close_room_title"),
+        i18n.t("modal.close_room_body"),
+        i18n.t("modal.close_room_confirm"),
         async () => {
             hideModal();
             try {
@@ -500,7 +652,7 @@ async function closeRoom() {
                 updateRoomSection();
                 showView("lobby");
             } catch (e) {
-                showModal("Error", String(e));
+                showModal(i18n.t("modal.error"), String(e));
             }
         }
     );
@@ -519,11 +671,39 @@ async function sendMessage() {
         await window.__TAURI__.core.invoke("send_message", { text });
         addMessage(state.handle || "you", text);
     } catch (e) {
-        addErrorMessage(`Failed to send: ${e}`);
+        addErrorMessage(i18n.t("chat.send_failed", { error: e }));
     }
 }
 
 // ─── Modal ──────────────────────────────────────────────────────────────────
+
+/** Element that had focus before the modal opened */
+let previouslyFocused = null;
+
+/** Trap Tab key inside the modal */
+function trapFocus(e) {
+    if (e.key !== "Tab") return;
+    const modal = document.getElementById("modal");
+    const focusable = modal.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (e.shiftKey) {
+        if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        }
+    } else {
+        if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    }
+}
 
 /**
  * Show a modal with plain text content (safe — no innerHTML).
@@ -546,7 +726,11 @@ function showModal(title, bodyText) {
     p.textContent = bodyText;
     generic.appendChild(p);
     generic.style.display = "block";
+    previouslyFocused = document.activeElement;
     modalOverlay.classList.remove("hidden");
+    document.addEventListener("keydown", trapFocus);
+    // Focus the close button so screen readers land inside the modal
+    setTimeout(() => modalClose.focus(), 50);
 }
 
 /**
@@ -577,11 +761,14 @@ function showModalWithConfirm(title, bodyText, confirmLabel, onConfirm) {
     generic.appendChild(btn);
 
     generic.style.display = "block";
+    previouslyFocused = document.activeElement;
     modalOverlay.classList.remove("hidden");
+    document.addEventListener("keydown", trapFocus);
+    setTimeout(() => modalClose.focus(), 50);
 }
 
 function showDirectConnectModal() {
-    modalTitle.textContent = "Direct Connect";
+    modalTitle.textContent = i18n.t("modal.direct_connect");
     // Show DC form fields, hide generic content
     const dcFields = modalBody.querySelectorAll(".form-group, .btn-primary");
     dcFields.forEach((el) => el.style.display = "");
@@ -591,13 +778,21 @@ function showDirectConnectModal() {
     dcHost.value = "";
     dcPort.value = "";
     dcConnectBtn.disabled = false;
-    dcConnectBtn.textContent = "Connect";
+    dcConnectBtn.textContent = i18n.t("modal.connect");
+    previouslyFocused = document.activeElement;
     modalOverlay.classList.remove("hidden");
+    document.addEventListener("keydown", trapFocus);
     setTimeout(() => dcHost.focus(), 50);
 }
 
 function hideModal() {
     modalOverlay.classList.add("hidden");
+    document.removeEventListener("keydown", trapFocus);
+    // Restore focus to the element that opened the modal
+    if (previouslyFocused && previouslyFocused.focus) {
+        previouslyFocused.focus();
+        previouslyFocused = null;
+    }
 }
 
 // ─── Tauri Event Listeners ──────────────────────────────────────────────────
@@ -622,7 +817,8 @@ function setupEventListeners() {
         const { handle } = event.payload;
         state.members.push({ handle });
         updateMemberList();
-        addSystemMessage(`${handle} joined the room`);
+        addSystemMessage(i18n.t("chat.member_joined", { handle }));
+        announce(i18n.t("chat.member_joined", { handle }));
     });
 
     // Member left
@@ -630,12 +826,13 @@ function setupEventListeners() {
         const { handle } = event.payload;
         state.members = state.members.filter((m) => m.handle !== handle);
         updateMemberList();
-        addSystemMessage(`${handle} left the room`);
+        addSystemMessage(i18n.t("chat.member_left", { handle }));
     });
 
     // Room closed by creator
     listen("retro://room-closed", (event) => {
-        addSystemMessage("Room closed by creator. All data destroyed.");
+        addSystemMessage(i18n.t("chat.room_closed"));
+        announce(i18n.t("chat.room_closed"));
         state.currentRoom = null;
         state.currentRoomName = null;
         state.members = [];
@@ -659,9 +856,10 @@ function setupEventListeners() {
     listen("retro://error", (event) => {
         const { message } = event.payload;
         if (state.currentView === "chat") {
-            addErrorMessage(`Server: ${message}`);
+            addErrorMessage(`${i18n.t("modal.server_error")}: ${message}`);
         } else {
-            showModal("Server Error", message);
+            showModal(i18n.t("modal.server_error"), message);
+            announceError(`${i18n.t("modal.server_error")}: ${message}`);
         }
     });
 
@@ -671,9 +869,10 @@ function setupEventListeners() {
         resetState();
 
         if (wasInChat) {
-            addSystemMessage("Disconnected from server.");
+            addSystemMessage(i18n.t("chat.disconnected"));
         }
 
+        announce(i18n.t("chat.disconnected"));
         showView("home");
     });
 
@@ -693,7 +892,8 @@ function setupEventListeners() {
         // Switch to chat view
         chatRoomName.textContent = state.currentRoomName;
         messagesEl.innerHTML = "";
-        addSystemMessage(`Joined room — ${state.currentRoomName}`);
+        addSystemMessage(i18n.t("chat.joined", { name: state.currentRoomName }));
+        announce(i18n.t("chat.joined", { name: state.currentRoomName }));
         updateCloseButton();
         startAgeTimer();
 
@@ -713,7 +913,7 @@ function setupEventListeners() {
 
         chatRoomName.textContent = state.currentRoomName;
         messagesEl.innerHTML = "";
-        addSystemMessage(`Room created — share this ID to invite others:`);
+        addSystemMessage(i18n.t("chat.room_created"));
         addSystemMessage(room_id);
         updateCloseButton();
         startAgeTimer();
@@ -765,6 +965,32 @@ settingsBtn.addEventListener("click", () => showView("settings"));
 // Theme toggle
 themeToggles.forEach((btn) => {
     btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+});
+
+// Font size toggle
+fontSizeToggles.forEach((btn) => {
+    btn.addEventListener("click", () => setFontSize(btn.dataset.fontsize));
+});
+
+// Reduced motion toggle
+reducedMotionToggle.addEventListener("change", () => {
+    setReducedMotion(reducedMotionToggle.checked);
+});
+
+// High contrast toggle
+highContrastToggle.addEventListener("change", () => {
+    setHighContrast(highContrastToggle.checked);
+});
+
+// Language select
+languageSelect.addEventListener("change", async () => {
+    await i18n.setLocale(languageSelect.value);
+    // Re-apply dynamic text that data-i18n can't cover
+    updateConnectionStatus();
+    updateSessionButton();
+    if (state.currentRoom) {
+        updateMemberList();
+    }
 });
 
 // Direct connect (inside modal)
@@ -830,6 +1056,13 @@ modalOverlay.addEventListener("click", (e) => {
     if (e.target === modalOverlay) hideModal();
 });
 
+// Escape key closes modal
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modalOverlay.classList.contains("hidden")) {
+        hideModal();
+    }
+});
+
 // ─── Window Controls ────────────────────────────────────────────────────────
 
 document.getElementById("btn-close").addEventListener("click", async () => {
@@ -859,7 +1092,19 @@ document.getElementById("sidebar-brand").addEventListener("mousedown", async (e)
 
 // ─── Initialize ─────────────────────────────────────────────────────────────
 
-loadTheme();
-setupEventListeners();
-updateConnectionStatus();
-showView("home");
+async function init() {
+    loadTheme();
+    loadFontSize();
+    loadReducedMotion();
+    loadHighContrast();
+
+    // Initialize i18n — loads locale JSON then applies translations
+    await i18n.init();
+    populateLanguageSelect();
+
+    setupEventListeners();
+    updateConnectionStatus();
+    showView("home");
+}
+
+init();

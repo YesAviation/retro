@@ -59,11 +59,11 @@ async fn cleanup_expired(state: &AppState) {
                 if now - msg.timestamp > config.message_expiry_secs {
                     // SECURITY: Zero out the ciphertext bytes before drop
                     // so the allocator cannot leak remnants on reuse.
-                    // SAFETY: We're writing zeros to owned Vec bytes.
-                    let bytes = unsafe { msg.ciphertext.as_bytes_mut() };
-                    for b in bytes.iter_mut() {
-                        *b = 0u8;
-                    }
+                    // SAFETY: as_mut_vec() is safe on owned String — we have &mut access.
+                    let bytes = unsafe { msg.ciphertext.as_mut_vec() };
+                    bytes.fill(0);
+                    let from_bytes = unsafe { msg.from.as_mut_vec() };
+                    from_bytes.fill(0);
                     tracing::debug!("Expired + zeroed message in room");
                     false
                 } else {

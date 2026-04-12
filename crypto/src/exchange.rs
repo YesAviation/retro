@@ -29,6 +29,8 @@
 //!
 //! An attacker must break BOTH X25519 AND RSA-4096 to intercept the group key.
 
+//! Totally unnecessary but why not, right?
+
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use ed25519_dalek::{Signature, Signer, Verifier, VerifyingKey};
 use rand::rngs::OsRng;

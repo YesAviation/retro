@@ -93,10 +93,14 @@ pub async fn connect_to_server(
         format!("{}://{}/ws", scheme, host)
     };
 
-    // Connect
-    let (ws_stream, _response) = tokio_tungstenite::connect_async(&ws_url)
-        .await
-        .map_err(|e| format!("WebSocket connection failed: {}", e))?;
+    // Connect with timeout to prevent hanging on unreachable servers
+    let (ws_stream, _response) = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        tokio_tungstenite::connect_async(&ws_url),
+    )
+    .await
+    .map_err(|_| "Connection timed out (10s) — server may be unreachable".to_string())?
+    .map_err(|e| format!("WebSocket connection failed: {}", e))?;
 
     let (mut ws_sink, mut ws_stream_rx) = ws_stream.split();
 
@@ -104,21 +108,25 @@ pub async fn connect_to_server(
     let session_keys =
         SessionKeys::generate().map_err(|e| format!("Key generation failed: {}", e))?;
 
-    // Wait for Identity message from server
-    let handle = loop {
-        match ws_stream_rx.next().await {
-            Some(Ok(Message::Text(text))) => {
-                if let Ok(msg) = serde_json::from_str::<ServerMessage>(&text) {
-                    if let ServerMessage::Identity { handle } = msg {
-                        break handle;
+    // Wait for Identity message from server (with timeout)
+    let handle = tokio::time::timeout(std::time::Duration::from_secs(10), async {
+        loop {
+            match ws_stream_rx.next().await {
+                Some(Ok(Message::Text(text))) => {
+                    if let Ok(msg) = serde_json::from_str::<ServerMessage>(&text) {
+                        if let ServerMessage::Identity { handle } = msg {
+                            return Ok(handle);
+                        }
                     }
                 }
+                Some(Err(e)) => return Err(format!("WebSocket error: {}", e)),
+                None => return Err("Connection closed before receiving identity".to_string()),
+                _ => continue,
             }
-            Some(Err(e)) => return Err(format!("WebSocket error: {}", e)),
-            None => return Err("Connection closed before receiving identity".to_string()),
-            _ => continue,
         }
-    };
+    })
+    .await
+    .map_err(|_| "Server did not send identity within 10s".to_string())??;
 
     // Create sender channel
     let (tx, mut rx) = mpsc::unbounded_channel::<String>();
