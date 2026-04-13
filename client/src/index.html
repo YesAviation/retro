@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="theme-dark" dir="ltr">
+<html lang="en" dir="ltr" data-theme="bbs" data-phosphor="green">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -186,12 +186,12 @@
                     <h3 class="settings-section-title" data-i18n="settings.section.appearance">Appearance</h3>
                     <div class="setting-row">
                         <div class="setting-info">
-                            <span class="setting-label" data-i18n="settings.theme">Theme</span>
-                            <span class="setting-desc" data-i18n="settings.theme_desc">Switch between dark and light mode</span>
+                            <span class="setting-label" data-i18n="settings.phosphor">Phosphor Color</span>
+                            <span class="setting-desc" data-i18n="settings.phosphor_desc">Choose your terminal phosphor</span>
                         </div>
-                        <div id="theme-toggle" class="theme-toggle" role="radiogroup" aria-label="Theme selection">
-                            <button class="toggle-opt active" data-theme="dark" role="radio" aria-checked="true" data-i18n="settings.theme_dark">Dark</button>
-                            <button class="toggle-opt" data-theme="light" role="radio" aria-checked="false" data-i18n="settings.theme_light">Light</button>
+                        <div id="phosphor-toggle" class="theme-toggle" role="radiogroup" data-i18n-aria="aria.phosphor_select" aria-label="Phosphor color">
+                            <button class="toggle-opt active" data-phosphor="green" role="radio" aria-checked="true" data-i18n="settings.phosphor_green">Green</button>
+                            <button class="toggle-opt" data-phosphor="amber" role="radio" aria-checked="false" data-i18n="settings.phosphor_amber">Amber</button>
                         </div>
                     </div>
                 </div>
@@ -231,16 +231,6 @@
                         </div>
                         <label class="toggle-label setting-toggle">
                             <input type="checkbox" id="reduced-motion-toggle" />
-                            <span class="toggle-switch"></span>
-                        </label>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-info">
-                            <span class="setting-label" data-i18n="settings.high_contrast">High Contrast</span>
-                            <span class="setting-desc" data-i18n="settings.high_contrast_desc">Increase contrast for better readability</span>
-                        </div>
-                        <label class="toggle-label setting-toggle">
-                            <input type="checkbox" id="high-contrast-toggle" />
                             <span class="toggle-switch"></span>
                         </label>
                     </div>

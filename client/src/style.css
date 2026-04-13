@@ -1,8 +1,10 @@
 /*
- * Retro — Monochrome CRT Aesthetic
+ * Retro — BBS Phosphor Theme
  *
- * No color. Pure black/white/gray. Monospace.
- * CRT scanline overlay for that old-school phosphor look.
+ * Authentic monochrome terminal. Black background, green or amber phosphor.
+ * Sharp edges, ALL CAPS chrome, box-drawn panels, phosphor glow, scanlines.
+ * User picks phosphor color in Settings (default: green). No light variant —
+ * AOL theme will be the light option when it lands.
  */
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap');
@@ -13,57 +15,58 @@
     box-sizing: border-box;
 }
 
-/* ─── Theme Variables ────────────────────────────────────────────────────── */
+/* ─── Theme Variables — BBS Phosphor ─────────────────────────────────────── */
 
 :root {
-    --bg: #0a0a0a;
-    --bg-surface: #111111;
-    --bg-sidebar: #0d0d0d;
-    --bg-input: #141414;
-    --fg: #999999;
-    --fg-bright: #e0e0e0;
-    --fg-dim: #666666;
-    --fg-muted: #333333;
-    --accent: #cccccc;
-    --accent-dim: #888888;
-    --border: #1e1e1e;
-    --border-light: #252525;
-    --hover-bg: #1a1a1a;
-    --active-bg: #1f1f1f;
-    --danger: #999999;
-    --danger-hover: #bbbbbb;
-    --cursor-color: #cccccc;
-    --selection-bg: #cccccc;
+    /* Phosphor palette. Defaults to green P1. Amber override below. */
+    --phosphor: #33ff66;
+    --phosphor-bright: #b8ffc8;
+    --phosphor-dim: #1fa33f;
+    --phosphor-muted: #0a4018;
+    --phosphor-glow: rgba(51, 255, 102, 0.45);
+    --phosphor-glow-soft: rgba(51, 255, 102, 0.18);
+
+    /* Background is always pure black for BBS */
+    --bg: #000000;
+    --bg-surface: #040804;
+    --bg-sidebar: #000000;
+    --bg-input: #050c05;
+
+    /* Foreground vars map to phosphor — existing rules keep working */
+    --fg: var(--phosphor);
+    --fg-bright: var(--phosphor-bright);
+    --fg-dim: var(--phosphor-dim);
+    --fg-muted: var(--phosphor-muted);
+    --accent: var(--phosphor-bright);
+    --accent-dim: var(--phosphor);
+    --border: var(--phosphor-dim);
+    --border-light: var(--phosphor);
+    --hover-bg: rgba(51, 255, 102, 0.08);
+    --active-bg: rgba(51, 255, 102, 0.15);
+    --danger: var(--phosphor-bright);
+    --danger-hover: var(--phosphor);
+    --cursor-color: var(--phosphor-bright);
+    --selection-bg: var(--phosphor);
     --selection-fg: #000000;
+
     --font-family: 'IBM Plex Mono', 'Cascadia Mono', 'Consolas', 'Courier New', monospace;
     --font-size: 13px;
     --line-height: 1.6;
     --sidebar-width: 220px;
-    --radius: 4px;
-    --transition: 150ms ease;
+    --radius: 0;
+    --transition: 120ms ease;
 }
 
-/* Light theme override */
-.theme-light {
-    --bg: #f0f0f0;
-    --bg-surface: #ffffff;
-    --bg-sidebar: #f5f5f5;
-    --bg-input: #ffffff;
-    --fg: #666666;
-    --fg-bright: #111111;
-    --fg-dim: #999999;
-    --fg-muted: #cccccc;
-    --accent: #333333;
-    --accent-dim: #555555;
-    --border: #d5d5d5;
-    --border-light: #c5c5c5;
-    --hover-bg: #e8e8e8;
-    --active-bg: #dddddd;
-    --danger: #555555;
-    --danger-hover: #333333;
-    --cursor-color: #333333;
-    --selection-bg: #333333;
-    --selection-fg: #ffffff;
+/* Amber phosphor (classic P3) — applied via [data-phosphor="amber"] on <html> */
+[data-phosphor="amber"] {
+    --phosphor: #ffb000;
+    --phosphor-bright: #ffdc80;
+    --phosphor-dim: #a06800;
+    --phosphor-muted: #3d2800;
+    --phosphor-glow: rgba(255, 176, 0, 0.45);
+    --phosphor-glow-soft: rgba(255, 176, 0, 0.18);
+    --hover-bg: rgba(255, 176, 0, 0.08);
+    --active-bg: rgba(255, 176, 0, 0.15);
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────── */
@@ -1270,14 +1273,6 @@ input:focus, button:focus {
     animation: crt-flicker 8s infinite;
 }
 
-/* Slight phosphor text glow in dark mode */
-.theme-dark #messages .msg-text,
-.theme-dark #messages .msg-handle,
-.theme-dark .brand-text,
-.theme-dark .view-header h2 {
-    text-shadow: 0 0 3px rgba(200, 200, 200, 0.2);
-}
-
 /* Subtle vignette — darkens edges like a real CRT */
 #crt-overlay::after {
     content: '';
@@ -1288,31 +1283,7 @@ input:focus, button:focus {
     background: radial-gradient(
         ellipse at center,
         transparent 65%,
-        rgba(0, 0, 0, 0.15) 100%
-    );
-}
-
-/* Turn off CRT effects in light mode — scanlines look weird on white.
-   .theme-light is on <html>, overlay is a descendant, so use space (descendant)
-   not ~ (sibling). */
-.theme-light #crt-overlay {
-    background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 3px,
-        rgba(0, 0, 0, 0.03) 3px,
-        rgba(0, 0, 0, 0.03) 4px
-    );
-    box-shadow:
-        inset 0 0 40px 8px rgba(0, 0, 0, 0.06),
-        inset 0 0 2px 1px rgba(0, 0, 0, 0.08);
-}
-
-.theme-light #crt-overlay::after {
-    background: radial-gradient(
-        ellipse at center,
-        transparent 70%,
-        rgba(0, 0, 0, 0.06) 100%
+        rgba(0, 0, 0, 0.3) 100%
     );
 }
 
@@ -1351,48 +1322,9 @@ input:focus, button:focus {
 }
 
 /* ─── High Contrast Mode ────────────────────────────────────────────────── */
-
-.high-contrast {
-    --fg: #cccccc;
-    --fg-bright: #ffffff;
-    --fg-dim: #aaaaaa;
-    --fg-muted: #777777;
-    --border: #555555;
-    --border-light: #666666;
-    --accent: #ffffff;
-    --accent-dim: #cccccc;
-}
-
-.high-contrast.theme-light {
-    --fg: #333333;
-    --fg-bright: #000000;
-    --fg-dim: #444444;
-    --fg-muted: #666666;
-    --border: #888888;
-    --border-light: #999999;
-    --accent: #000000;
-    --accent-dim: #333333;
-}
-
-/* Respect OS-level high contrast preference */
-@media (prefers-contrast: more) {
-    :root:not(.contrast-override) {
-        --fg: #cccccc;
-        --fg-bright: #ffffff;
-        --fg-dim: #aaaaaa;
-        --fg-muted: #777777;
-        --border: #555555;
-        --border-light: #666666;
-    }
-    :root:not(.contrast-override).theme-light {
-        --fg: #333333;
-        --fg-bright: #000000;
-        --fg-dim: #444444;
-        --fg-muted: #666666;
-        --border: #888888;
-        --border-light: #999999;
-    }
-}
+/* BBS is the accessibility exception: no high-contrast override here.
+   Users who need guaranteed contrast select AOL (when it lands).
+   This keeps BBS authentic. The toggle is removed from Settings for BBS. */
 
 /* ─── Focus Visibility ──────────────────────────────────────────────────── */
 
@@ -1473,4 +1405,537 @@ select:focus-visible {
 [dir="rtl"] .settings-select {
     padding: 6px 10px 6px 28px;
     background-position: left 8px center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BBS THEME LAYER
+   Phosphor glow, bracketed headings, box-drawn panels, sharp edges.
+   All rules below assume BBS is the only active theme.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Phosphor Glow ──────────────────────────────────────────────────────── */
+
+/* Every piece of text gets the phosphor halo. Intensity varies by weight. */
+body {
+    text-shadow: 0 0 2px var(--phosphor-glow-soft);
+}
+
+.brand-text,
+.view-header h2,
+#chat-room-name,
+.msg-handle,
+.msg-text,
+.setting-label,
+h3 {
+    text-shadow:
+        0 0 1px var(--phosphor-glow),
+        0 0 4px var(--phosphor-glow-soft);
+}
+
+/* Input text needs no glow — it's behind a bordered box and gets fuzzy */
+input,
+select,
+.settings-select,
+textarea {
+    text-shadow: none;
+}
+
+/* ─── Sharp Edges Everywhere (except CRT window chrome) ──────────────────── */
+
+button,
+input,
+select,
+.btn-primary,
+.btn-danger,
+.btn-small,
+.btn-icon,
+.btn-send,
+.room-option-input,
+.nav-btn,
+.theme-toggle,
+.settings-select,
+#modal,
+.room-list,
+.server-card,
+.msg,
+.room-entry {
+    border-radius: 0 !important;
+}
+
+/* Pill toggles become square — they look more terminal-like this way */
+.toggle-switch {
+    border-radius: 0;
+}
+
+.toggle-switch::after {
+    border-radius: 0;
+}
+
+/* Window traffic-light dots → small square indicators (sharper, more BBS) */
+.win-btn {
+    border-radius: 0;
+    width: 12px;
+    height: 12px;
+}
+
+/* Keep the outer CRT window bezel rounded — real CRTs had curved corners */
+#app,
+#crt-overlay {
+    border-radius: 14px;
+}
+
+/* ─── Bracketed / Ruled Headings ─────────────────────────────────────────── */
+
+/* Classic BBS/terminal title pattern: ──── LABEL ──── */
+.view-header h2,
+.settings-section-title,
+.sidebar-label,
+.room-browser-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--phosphor-bright);
+    white-space: nowrap;
+}
+
+.view-header h2::before,
+.view-header h2::after,
+.settings-section-title::before,
+.settings-section-title::after,
+.sidebar-label::before,
+.sidebar-label::after,
+.room-browser-title::before,
+.room-browser-title::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--phosphor-dim);
+    box-shadow: 0 0 2px var(--phosphor-glow-soft);
+}
+
+/* Sidebar labels only get a trailing rule, not leading — tighter look */
+.sidebar-label {
+    letter-spacing: 0.18em;
+    font-size: 10px;
+}
+.sidebar-label::before {
+    flex: 0 0 0.5em;
+}
+
+/* Section titles span the width with rules on both sides */
+.settings-section-title {
+    padding: 16px 0 8px;
+    border-bottom: none;
+    font-size: 11px;
+}
+
+/* View headers (h2) get heavier rules for presence */
+.view-header h2 {
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+.view-header h2::before,
+.view-header h2::after {
+    background: var(--phosphor);
+    height: 1px;
+}
+
+/* Room browser title matches the section style */
+.room-browser-title {
+    font-size: 11px;
+}
+
+/* ─── Box-Drawn Panels ───────────────────────────────────────────────────── */
+
+/* The main app container — a bordered terminal frame */
+#app {
+    border: 1px solid var(--phosphor-dim);
+    box-shadow:
+        inset 0 0 20px rgba(0, 0, 0, 0.8),
+        0 0 2px var(--phosphor-glow-soft);
+}
+
+#sidebar {
+    border-right: 1px solid var(--phosphor-dim);
+}
+
+#sidebar-brand {
+    border-bottom: 1px solid var(--phosphor-dim);
+}
+
+#drag-region {
+    border-bottom: 1px solid var(--phosphor-dim);
+}
+
+#sidebar-footer {
+    border-top: 1px solid var(--phosphor-dim);
+}
+
+/* Chat header separator */
+#chat-header {
+    border-bottom: 1px solid var(--phosphor-dim);
+}
+
+#chat-input-area {
+    border-top: 1px solid var(--phosphor-dim);
+}
+
+/* Room browser becomes a proper box */
+.room-browser {
+    border: 1px solid var(--phosphor-dim);
+    padding: 8px 10px 10px;
+    margin-top: 12px;
+    position: relative;
+}
+
+.room-browser-header {
+    margin-bottom: 8px;
+    margin-top: 0;
+}
+
+.room-list {
+    border: none;
+    border-top: 1px solid var(--phosphor-muted);
+    padding: 4px 0 0;
+    margin-top: 4px;
+}
+
+/* Room entries get a left phosphor mark on hover */
+.room-entry {
+    border-left: 2px solid transparent;
+    padding-left: 8px;
+    transition: border-color var(--transition), background var(--transition);
+}
+
+.room-entry:hover {
+    border-left-color: var(--phosphor);
+    background: var(--hover-bg);
+}
+
+/* Member list gets a simple left rule */
+#member-list {
+    border-left: 1px solid var(--phosphor-muted);
+    padding-left: 8px;
+    margin-left: 4px;
+}
+
+#member-list li::before {
+    content: "> ";
+    color: var(--phosphor-dim);
+}
+
+/* Settings sections become bordered boxes */
+.settings-section {
+    border: 1px solid var(--phosphor-dim);
+    padding: 0 16px 12px;
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.settings-section-title {
+    /* Lift the title to overlap the top border (fieldset-legend style) */
+    margin: 0 -8px 8px;
+    padding: 0 8px;
+    background: var(--bg);
+    position: relative;
+    top: -7px;
+    width: fit-content;
+}
+
+/* The row dividers inside a section become faint phosphor lines */
+.setting-row {
+    border-bottom: 1px solid var(--phosphor-muted);
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+/* Form-group labels: [ LABEL ] style brackets */
+.form-group label {
+    color: var(--phosphor);
+    font-weight: 700;
+    letter-spacing: 0.15em;
+}
+
+.form-group label::before {
+    content: "[ ";
+    color: var(--phosphor-dim);
+}
+
+.form-group label::after {
+    content: " ]";
+    color: var(--phosphor-dim);
+}
+
+/* ─── Buttons: Terminal Style ────────────────────────────────────────────── */
+
+.btn-primary,
+.btn-danger,
+.btn-small,
+.btn-icon {
+    border: 1px solid var(--phosphor);
+    background: transparent;
+    color: var(--phosphor-bright);
+    text-shadow: 0 0 2px var(--phosphor-glow);
+}
+
+.btn-primary {
+    background: transparent;
+    color: var(--phosphor-bright);
+}
+
+.btn-primary::before {
+    content: "> ";
+    opacity: 0.7;
+}
+
+.btn-primary:hover {
+    background: var(--phosphor);
+    color: #000;
+    text-shadow: none;
+}
+
+.btn-danger:hover {
+    background: var(--phosphor-bright);
+    color: #000;
+    text-shadow: none;
+}
+
+.btn-small {
+    border-color: var(--phosphor-dim);
+    color: var(--phosphor);
+}
+
+.btn-small:hover {
+    border-color: var(--phosphor);
+    color: var(--phosphor-bright);
+    background: var(--hover-bg);
+}
+
+.btn-send {
+    background: transparent;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor-bright);
+}
+
+.btn-send:hover {
+    background: var(--phosphor);
+    color: #000;
+}
+
+/* Navigation buttons get a left marker on active/hover */
+.nav-btn {
+    border-left: 2px solid transparent;
+}
+
+.nav-btn:hover,
+.nav-btn.active {
+    border-left-color: var(--phosphor);
+    background: var(--hover-bg);
+}
+
+.nav-btn.active {
+    background: var(--active-bg);
+}
+
+/* ─── Inputs: Terminal Style ─────────────────────────────────────────────── */
+
+input[type="text"],
+input[type="password"],
+.form-group input,
+.inline-form input,
+.room-option-input,
+#chat-input {
+    border: 1px solid var(--phosphor-dim);
+    background: var(--bg-input);
+    color: var(--phosphor-bright);
+    caret-color: var(--phosphor-bright);
+}
+
+input:focus,
+.form-group input:focus,
+.inline-form input:focus,
+.room-option-input:focus,
+#chat-input:focus {
+    border-color: var(--phosphor);
+    box-shadow: 0 0 4px var(--phosphor-glow-soft);
+}
+
+::placeholder {
+    color: var(--phosphor-muted) !important;
+    font-style: italic;
+}
+
+/* Select dropdown arrow — swap in a phosphor-colored SVG */
+.settings-select {
+    border: 1px solid var(--phosphor-dim);
+    color: var(--phosphor-bright);
+    background-color: var(--bg-input);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2333ff66' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+
+.settings-select:focus {
+    border-color: var(--phosphor);
+    box-shadow: 0 0 4px var(--phosphor-glow-soft);
+}
+
+[data-phosphor="amber"] .settings-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ffb000' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+}
+
+/* ─── Modal: Bracketed Title Bar ─────────────────────────────────────────── */
+
+#modal {
+    border: 1px solid var(--phosphor);
+    background: var(--bg);
+    box-shadow:
+        0 0 0 1px var(--bg),
+        0 0 12px var(--phosphor-glow-soft),
+        0 8px 32px rgba(0, 0, 0, 0.8);
+}
+
+#modal-header {
+    border-bottom: 1px solid var(--phosphor-dim);
+}
+
+#modal-header h3 {
+    color: var(--phosphor-bright);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+#modal-header h3::before {
+    content: "┤ ";
+    color: var(--phosphor);
+}
+
+#modal-header h3::after {
+    content: " ├";
+    color: var(--phosphor);
+}
+
+/* ─── Chat Messages: Phosphor Tint ───────────────────────────────────────── */
+
+.msg-handle {
+    color: var(--phosphor-bright);
+}
+
+.msg-handle::before {
+    content: "<";
+    color: var(--phosphor-dim);
+}
+
+.msg-handle::after {
+    content: ">";
+    color: var(--phosphor-dim);
+}
+
+.msg-text {
+    color: var(--phosphor);
+}
+
+.msg-system {
+    color: var(--phosphor-dim);
+    font-style: italic;
+}
+
+.msg-system::before {
+    content: "── ";
+    color: var(--phosphor-muted);
+}
+
+.msg-error {
+    color: var(--phosphor-bright);
+    font-weight: 700;
+}
+
+.msg-error::before {
+    content: "!! ";
+    color: var(--phosphor-bright);
+}
+
+/* ─── Toggle switches (temporary; keep working for reduced-motion etc) ──── */
+
+.toggle-switch {
+    background: var(--bg-input);
+    border: 1px solid var(--phosphor-dim);
+}
+
+.toggle-switch::after {
+    background: var(--phosphor-dim);
+}
+
+.toggle-label input:checked + .toggle-switch {
+    border-color: var(--phosphor);
+}
+
+.toggle-label input:checked + .toggle-switch::after {
+    background: var(--phosphor);
+    box-shadow: 0 0 4px var(--phosphor-glow);
+}
+
+/* ─── Connection status dot: phosphor glow when live ─────────────────────── */
+
+.dot-connected {
+    background: var(--phosphor);
+    box-shadow:
+        0 0 4px var(--phosphor),
+        0 0 8px var(--phosphor-glow);
+}
+
+.dot-disconnected {
+    background: var(--phosphor-muted);
+}
+
+/* ─── Selection: inverse phosphor ────────────────────────────────────────── */
+
+::selection {
+    background: var(--phosphor);
+    color: #000;
+    text-shadow: none;
+}
+
+/* ─── Focus rings: phosphor-bright ───────────────────────────────────────── */
+
+:focus-visible {
+    outline: 1px solid var(--phosphor-bright);
+    outline-offset: 2px;
+    box-shadow: 0 0 6px var(--phosphor-glow);
+}
+
+/* ─── Theme-toggle (phosphor picker reuses this) ─────────────────────────── */
+
+.theme-toggle {
+    border: 1px solid var(--phosphor-dim);
+}
+
+.toggle-opt {
+    color: var(--phosphor-dim);
+    border-right: 1px solid var(--phosphor-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+}
+
+.toggle-opt.active {
+    background: var(--phosphor);
+    color: #000;
+    text-shadow: none;
+}
+
+.toggle-opt:hover:not(.active) {
+    background: var(--hover-bg);
+    color: var(--phosphor-bright);
+}
+
+/* ─── Scrollbars: phosphor ───────────────────────────────────────────────── */
+
+::-webkit-scrollbar-thumb,
+#sidebar-room-section::-webkit-scrollbar-thumb,
+.view::-webkit-scrollbar-thumb,
+.server-list::-webkit-scrollbar-thumb,
+#messages::-webkit-scrollbar-thumb {
+    background: var(--phosphor-dim) !important;
 }

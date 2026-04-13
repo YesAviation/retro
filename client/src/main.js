@@ -59,8 +59,8 @@ const btnDisconnect = document.getElementById("btn-disconnect");
 const lobbyRoomList = document.getElementById("lobby-room-list");
 const btnRefreshRooms = document.getElementById("btn-refresh-rooms");
 
-// Theme
-const themeToggles = document.querySelectorAll(".toggle-opt[data-theme]");
+// Phosphor (BBS theme only ships green + amber for commit 1)
+const phosphorToggles = document.querySelectorAll(".toggle-opt[data-phosphor]");
 
 // Modal
 const modalOverlay = document.getElementById("modal-overlay");
@@ -78,9 +78,6 @@ const reducedMotionToggle = document.getElementById("reduced-motion-toggle");
 // Screen reader announcements
 const srAnnouncements = document.getElementById("sr-announcements");
 const srErrors = document.getElementById("sr-errors");
-
-// Settings — High Contrast
-const highContrastToggle = document.getElementById("high-contrast-toggle");
 
 // ─── State ──────────────────────────────────────────────────────────────────
 
@@ -161,26 +158,24 @@ function showView(viewName) {
     }
 }
 
-// ─── Theme ──────────────────────────────────────────────────────────────────
+// ─── Phosphor (BBS theme color) ─────────────────────────────────────────────
 
-function setTheme(theme) {
-    const root = document.documentElement;
-    root.classList.remove("theme-dark", "theme-light");
-    root.classList.add(`theme-${theme}`);
+function setPhosphor(color) {
+    if (color !== "green" && color !== "amber") color = "green";
+    document.documentElement.setAttribute("data-phosphor", color);
 
-    // Update toggle buttons
-    themeToggles.forEach((btn) => {
-        const isActive = btn.dataset.theme === theme;
+    phosphorToggles.forEach((btn) => {
+        const isActive = btn.dataset.phosphor === color;
         btn.classList.toggle("active", isActive);
         btn.setAttribute("aria-checked", isActive ? "true" : "false");
     });
 
-    localStorage.setItem("retro-theme", theme);
+    localStorage.setItem("retro-phosphor", color);
 }
 
-function loadTheme() {
-    const saved = localStorage.getItem("retro-theme");
-    setTheme(saved || "dark");
+function loadPhosphor() {
+    const saved = localStorage.getItem("retro-phosphor");
+    setPhosphor(saved || "green");
 }
 
 // ─── Font Size ──────────────────────────────────────────────────────────────
@@ -225,29 +220,6 @@ function loadReducedMotion() {
         setReducedMotion(prefersReduced);
     } else {
         setReducedMotion(saved === "1");
-    }
-}
-
-// ─── High Contrast ─────────────────────────────────────────────────────
-
-function setHighContrast(enabled) {
-    const root = document.documentElement;
-    if (enabled) {
-        root.classList.add("high-contrast");
-    } else {
-        root.classList.remove("high-contrast");
-    }
-    highContrastToggle.checked = enabled;
-    localStorage.setItem("retro-high-contrast", enabled ? "1" : "0");
-}
-
-function loadHighContrast() {
-    const saved = localStorage.getItem("retro-high-contrast");
-    if (saved === null) {
-        const prefersContrast = window.matchMedia("(prefers-contrast: more)").matches;
-        setHighContrast(prefersContrast);
-    } else {
-        setHighContrast(saved === "1");
     }
 }
 
@@ -962,9 +934,9 @@ roomInfoEl.addEventListener("click", () => {
 // Settings button
 settingsBtn.addEventListener("click", () => showView("settings"));
 
-// Theme toggle
-themeToggles.forEach((btn) => {
-    btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+// Phosphor picker (green / amber)
+phosphorToggles.forEach((btn) => {
+    btn.addEventListener("click", () => setPhosphor(btn.dataset.phosphor));
 });
 
 // Font size toggle
@@ -975,11 +947,6 @@ fontSizeToggles.forEach((btn) => {
 // Reduced motion toggle
 reducedMotionToggle.addEventListener("change", () => {
     setReducedMotion(reducedMotionToggle.checked);
-});
-
-// High contrast toggle
-highContrastToggle.addEventListener("change", () => {
-    setHighContrast(highContrastToggle.checked);
 });
 
 // Language select
@@ -1093,10 +1060,9 @@ document.getElementById("sidebar-brand").addEventListener("mousedown", async (e)
 // ─── Initialize ─────────────────────────────────────────────────────────────
 
 async function init() {
-    loadTheme();
+    loadPhosphor();
     loadFontSize();
     loadReducedMotion();
-    loadHighContrast();
 
     // Initialize i18n — loads locale JSON then applies translations
     await i18n.init();

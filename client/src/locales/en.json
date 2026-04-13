@@ -113,5 +113,11 @@
     "aria.modal_close": "Close dialog",
     "aria.send_message": "Send message",
     "aria.skip_to_content": "Skip to content",
-    "aria.connection_status": "Connection status"
+    "aria.connection_status": "Connection status",
+    "aria.phosphor_select": "Phosphor color selection",
+
+    "settings.phosphor": "Phosphor Color",
+    "settings.phosphor_desc": "Choose your terminal phosphor",
+    "settings.phosphor_green": "Green",
+    "settings.phosphor_amber": "Amber"
 }
