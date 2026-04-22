@@ -1,36 +1,3 @@
-//! Key exchange protocol.
-//!
-//! ## Flow
-//!
-//! When user A joins a room where user B is already present:
-//!
-//! ```text
-//! A                          Server                         B
-//! │                            │                             │
-//! │── JoinRoom ──────────────→ │                             │
-//! │                            │── MemberJoined(A.pubkeys) →│
-//! │                            │                             │
-//! │                            │←── KeyExchange(payload) ────│
-//! │←── KeyExchange(payload) ──│                             │
-//! │                            │                             │
-//! │  [A decrypts group key]    │                             │
-//! │  [Key ratchets to K(n+1)]  │    [Key ratchets to K(n+1)]│
-//! ```
-//!
-//! ## Defense in Depth
-//!
-//! The key exchange uses BOTH X25519 ECDH and RSA-4096:
-//!
-//! 1. B performs X25519 ECDH with A's public key → `shared_ecdh`
-//! 2. B encrypts `shared_ecdh` with A's RSA public key → `rsa_wrapped`
-//! 3. B encrypts the current group key using `shared_ecdh` (double-wrapped)
-//! 4. B signs everything with Ed25519
-//! 5. A receives, decrypts RSA, verifies ECDH matches, decrypts group key
-//!
-//! An attacker must break BOTH X25519 AND RSA-4096 to intercept the group key.
-
-//! Totally unnecessary but why not, right?
-
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use ed25519_dalek::{Signature, Signer, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
@@ -45,8 +12,6 @@ use crate::keys::SessionKeys;
 use crate::types::{KeyExchangePayload, PublicKeyBundle};
 use crate::CryptoError;
 
-/// Perform key exchange as the EXISTING member (sender).
-///
 /// Given the new member's public keys and the current group key,
 /// produce a [`KeyExchangePayload`] that only the new member can decrypt.
 pub fn initiate_key_exchange(
@@ -68,7 +33,6 @@ pub fn initiate_key_exchange(
     let mut shared_ecdh = our_keys.x25519_secret.diffie_hellman(&their_x25519).to_bytes();
 
     // 3. RSA-OAEP encrypt the ECDH shared secret with their RSA public key
-    //    (defense in depth: attacker must break BOTH X25519 AND RSA-4096)
     let their_rsa_der = B64
         .decode(&their_public_keys.rsa)
         .map_err(|e| CryptoError::KeyExchange(format!("RSA key decode: {}", e)))?;
@@ -108,7 +72,6 @@ pub fn initiate_key_exchange(
 }
 
 /// Complete key exchange as the NEW member (receiver).
-///
 /// Decrypt and verify the [`KeyExchangePayload`] to recover the group key.
 pub fn complete_key_exchange(
     our_keys: &SessionKeys,
@@ -187,14 +150,6 @@ pub fn complete_key_exchange(
     Ok(group_key)
 }
 
-/// Derive a per-member DM key from an ECDH shared secret.
-///
-/// Both parties derive the **same** key because X25519 ECDH is commutative:
-/// `our_secret × their_public == their_secret × our_public`
-///
-/// The raw 32-byte ECDH output is fed through HKDF-SHA256 with a
-/// DM-specific info tag to produce a proper 256-bit symmetric key,
-/// ensuring domain separation from the group key.
 pub fn derive_dm_key(
     our_keys: &SessionKeys,
     their_public_keys: &PublicKeyBundle,
@@ -210,11 +165,7 @@ pub fn derive_dm_key(
 
     // X25519 ECDH
     let shared = our_keys.x25519_secret.diffie_hellman(&their_x25519);
-
-    // HKDF-SHA256 with DM-specific salt and info for domain separation.
-    // The salt provides additional cryptographic separation from other
-    // HKDF usages (group key derivation, ratchet) that share the same
-    // ECDH shared secret.
+    
     let hkdf = hkdf::Hkdf::<Sha256>::new(Some(b"retro-dm-salt-v1"), shared.as_bytes());
     let mut dm_key = [0u8; 32];
     hkdf.expand(b"retro-dm-key", &mut dm_key)
