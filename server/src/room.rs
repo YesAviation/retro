@@ -1,10 +1,5 @@
-//! Room management.
-//!
-//! Rooms are the core unit of the Retro server. Each room:
-//! - Has a unique ID and configuration (expiry settings)
-//! - Tracks connected members (by ephemeral handle only)
-//! - Stores encrypted message blobs (ciphertext the server cannot read)
-//! - Can be destroyed (cryptographic death — all data overwritten)
+/// Will most likely rewrite. I see room for improvement here but more can be happening in terms of room cleanup
+/// Reminder to self, remove tracing. 
 
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -15,6 +10,7 @@ use tokio::sync::RwLock;
 use retro_crypto::{MemberInfo, PublicKeyBundle, RoomConfig, ServerMessage};
 
 /// Maximum members per room.
+/// Hardcoded for now, won't be in the future; Mainly testing purposes but I don't ahve 200 people.
 const MAX_MEMBERS_PER_ROOM: usize = 200;
 
 /// An active chat room.
@@ -45,9 +41,6 @@ pub struct MemberConnection {
     pub public_keys: Option<PublicKeyBundle>,
 }
 
-/// An encrypted message stored on the server.
-///
-/// The server has NO ability to decrypt this. It's just bytes.
 #[derive(Debug, Clone)]
 pub struct StoredMessage {
     /// Serialized encrypted payload (opaque ciphertext)
