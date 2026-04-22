@@ -1,13 +1,3 @@
-//! Ephemeral key generation and management.
-//!
-//! Every session generates a fresh set of keys:
-//! - **X25519**: Elliptic-curve Diffie-Hellman key exchange
-//! - **Ed25519**: Digital signatures for message authentication
-//! - **RSA-4096**: Additional key wrapping layer (defense in depth)
-//!
-//! All secret keys implement [`ZeroizeOnDrop`] — when the session ends,
-//! keys are securely wiped from memory. No traces remain.
-
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use ed25519_dalek::SigningKey;
 use rand::rngs::OsRng;
@@ -22,10 +12,6 @@ use crate::CryptoError;
 /// RSA key size in bits. 4096-bit for maximum security.
 const RSA_KEY_BITS: usize = 4096;
 
-/// Ephemeral session keys — generated fresh per connection, destroyed on disconnect.
-///
-/// This struct holds ALL cryptographic material for a single session.
-/// When dropped, all secrets are zeroized in memory.
 pub struct SessionKeys {
     // ── Key Exchange ──
     /// X25519 secret key (for ECDH)
@@ -45,16 +31,6 @@ pub struct SessionKeys {
 }
 
 impl SessionKeys {
-    /// Generate a complete set of ephemeral session keys.
-    ///
-    /// This creates:
-    /// - X25519 keypair for Diffie-Hellman key exchange
-    /// - Ed25519 keypair for message signing/verification
-    /// - RSA-4096 keypair for additional key wrapping
-    ///
-    /// # Note
-    /// RSA-4096 key generation may take 1-3 seconds depending on hardware.
-    /// All keys use OS-provided cryptographic randomness ([`OsRng`]).
     pub fn generate() -> Result<Self, CryptoError> {
         // X25519 keypair for Diffie-Hellman key exchange
         let x25519_secret = X25519Secret::random_from_rng(OsRng);
@@ -78,10 +54,6 @@ impl SessionKeys {
         })
     }
 
-    /// Export the public key bundle for sharing with other participants.
-    ///
-    /// This is the ONLY information that leaves the client during key exchange.
-    /// Secret keys NEVER leave memory.
     pub fn public_bundle(&self) -> Result<PublicKeyBundle, CryptoError> {
         // X25519 public key: 32 bytes → base64
         let x25519 = B64.encode(self.x25519_public.as_bytes());
@@ -100,30 +72,13 @@ impl SessionKeys {
     }
 }
 
-/// Ensure all key material is zeroized when SessionKeys is dropped.
-///
-/// X25519Secret and Ed25519 SigningKey implement ZeroizeOnDrop natively.
-/// RSA private keys require explicit zeroization — we serialize the key
-/// to a mutable byte buffer, overwrite it with zeros, then replace the
-/// key with a known-safe minimum key. This ensures the original prime
-/// factors and private exponent are cleared from memory.
 impl Drop for SessionKeys {
     fn drop(&mut self) {
-        // X25519Secret: ZeroizeOnDrop (handled by x25519-dalek)
-        // Ed25519 SigningKey: ZeroizeOnDrop (handled by ed25519-dalek)
-
-        // RSA private key: serialize to DER, zeroize the bytes, then
-        // replace the key struct. The rsa crate does not guarantee
-        // ZeroizeOnDrop on the inner BigUint fields, so we overwrite
-        // what we can by swapping with a minimal key.
         if let Ok(der) = self.rsa_private.to_pkcs1_der() {
             let mut der_bytes = der.as_bytes().to_vec();
             der_bytes.zeroize();
         }
 
-        // Overwrite the in-memory RSA key components by replacing with
-        // a minimal 512-bit key. This is fast (<1ms) and deterministic.
-        // Even if this fails, the DER bytes above were already zeroized.
         if let Ok(dummy) = RsaPrivateKey::new(&mut OsRng, 512) {
             self.rsa_private = dummy;
             self.rsa_public = RsaPublicKey::from(&self.rsa_private);
@@ -131,10 +86,6 @@ impl Drop for SessionKeys {
     }
 }
 
-/// Generate a random anonymous handle (e.g., "anon_8f3k").
-///
-/// Handles are NOT cryptographic — they're just human-readable session identifiers.
-/// A new handle is generated every time a user connects.
 pub fn generate_handle() -> String {
     use rand::Rng;
     let mut rng = OsRng;
