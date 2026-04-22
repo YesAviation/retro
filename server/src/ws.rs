@@ -1,25 +1,4 @@
-//! WebSocket handler.
-//!
-//! Handles WebSocket upgrade, connection lifecycle, and message routing.
-//! The server acts as a DUMB RELAY — it routes encrypted blobs between
-//! clients without any ability to read or modify them.
-//!
-//! ## Access Control
-//!
-//! While the server cannot read messages, it DOES enforce:
-//! - Connection limits (max_players)
-//! - Room membership (only members can send/receive in a room)
-//! - Room creation limits (max_rooms)
-//! - Message size limits
-//! - Per-connection rate limiting
-//!
-//! ## Connection Lifecycle
-//!
-//! 1. Client connects via WebSocket
-//! 2. Server assigns ephemeral handle, sends `Identity` message
-//! 3. Client joins/creates rooms, exchanges keys with peers
-//! 4. Server relays encrypted messages between room members
-//! 5. Client disconnects — server removes from all rooms, triggers ratchet notifications
+// Some issues with this file
 
 use std::time::Instant;
 
