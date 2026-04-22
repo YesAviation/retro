@@ -1,13 +1,3 @@
-//! # Retro Client
-//!
-//! Tauri application backend for the Retro anonymous chat client.
-//!
-//! Responsibilities:
-//! - Manage WebSocket connection to the Retro server
-//! - Handle all cryptographic operations (key generation, encryption, decryption)
-//! - Expose IPC commands to the frontend terminal UI
-//! - Ensure all key material is zeroized on disconnect
-
 mod commands;
 mod ws;
 
