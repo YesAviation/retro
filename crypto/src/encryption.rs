@@ -1,28 +1,3 @@
-//! Double-wrapped symmetric encryption.
-//!
-//! ## Scheme
-//!
-//! Every message is encrypted twice with independent keys derived from the
-//! group key via HKDF-SHA256:
-//!
-//! ```text
-//! group_key ──┬── HKDF("retro-inner") ──→ K_inner (XChaCha20-Poly1305)
-//!             └── HKDF("retro-outer") ──→ K_outer (AES-256-GCM)
-//!
-//! plaintext
-//!   → XChaCha20-Poly1305(K_inner, nonce_inner)  // 24-byte nonce
-//!   → AES-256-GCM(K_outer, nonce_outer)          // 12-byte nonce
-//!   → double-wrapped ciphertext
-//! ```
-//!
-//! ## Why double-wrap?
-//!
-//! - **Algorithm diversity**: If a vulnerability is found in one cipher,
-//!   the other still protects the data
-//! - **Side-channel resistance**: Different algorithm families have different
-//!   side-channel profiles, making attacks significantly harder
-//! - **Defense in depth**: An attacker must break BOTH ciphers to read messages
-
 use aes_gcm::Aes256Gcm;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use chacha20poly1305::aead::{Aead, KeyInit};
@@ -46,8 +21,7 @@ const HKDF_INFO_INNER: &[u8] = b"retro-inner-xchacha20poly1305";
 const HKDF_INFO_OUTER: &[u8] = b"retro-outer-aes256gcm";
 
 /// Derive inner and outer subkeys from a group key using HKDF-SHA256.
-///
-/// Returns `(inner_key, outer_key)`, each 32 bytes.
+/// Returns (inner_key, outer_key), each 32 bytes.
 pub fn derive_subkeys(
     group_key: &[u8; KEY_SIZE],
     epoch: u64,
@@ -71,12 +45,6 @@ pub fn derive_subkeys(
     Ok((inner_key, outer_key))
 }
 
-/// Encrypt plaintext with double-wrapped encryption.
-///
-/// 1. Derive subkeys from group key
-/// 2. Encrypt with XChaCha20-Poly1305 (inner layer)
-/// 3. Encrypt the result with AES-256-GCM (outer layer)
-/// 4. Return the double-wrapped payload
 pub fn encrypt(
     plaintext: &[u8],
     group_key: &[u8; KEY_SIZE],
@@ -115,13 +83,6 @@ pub fn encrypt(
         epoch,
     })
 }
-
-/// Decrypt a double-wrapped payload.
-///
-/// 1. Derive subkeys from group key
-/// 2. Decrypt outer layer (AES-256-GCM)
-/// 3. Decrypt inner layer (XChaCha20-Poly1305)
-/// 4. Return plaintext
 pub fn decrypt(
     payload: &EncryptedPayload,
     group_key: &[u8; KEY_SIZE],
