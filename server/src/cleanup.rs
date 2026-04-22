@@ -1,17 +1,3 @@
-//! Background cleanup task.
-//!
-//! Periodically scans rooms for expired messages,
-//! overwrites them with zeros, then removes them.
-//!
-//! Also destroys empty rooms that have no members —
-//! rooms should not persist after all participants leave.
-//!
-//! ## Overwrite Policy
-//!
-//! We don't just `drop` expired data — we **overwrite** the memory with
-//! zeros before deallocating. This ensures that even if the allocator
-//! reuses the memory, no ciphertext remnants remain.
-
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::state::AppState;
