@@ -1,25 +1,16 @@
-//! # Retro Server
-//!
-//! Zero-knowledge encrypted relay server for the Retro anonymous chat application.
-//!
-//! ## What the server knows
-//!
-//! - Room IDs and their configuration (expiry timers)
-//! - Number of connected clients per room
-//! - Encrypted blobs (ciphertext it CANNOT decrypt)
-//!
-//! ## What the server does NOT know
-//!
-//! - User identities, IPs, or any metadata (nothing is logged)
-//! - Message contents (only sees ciphertext)
-//! - Encryption keys (never touches key material)
-//!
-//! ## What the server does NOT do
-//!
-//! - Log anything about users
-//! - Store any metadata beyond room config
-//! - Moderate content (it can't — everything is encrypted)
-//! - Retain data after room closure
+// Server Main
+// Basically, you send a message. Message gets encrypted.
+// Server doesn't have capability or knowledge to decrypt. 
+// Server is just the "mailman".
+// Server delivers message, client decrpyts.
+// Clients use E2EE (End2End-Encryption)
+// Keys get ratcheted every time someone joins a chatroom
+// When someone joins a chatroom, previous messages can't been seen (key ratcheted forwards). 
+// When rooms go abandoned, chat rooms get overwritten and destroyed into nothing
+// When a room is forcefully closed, chat rooms get overwritten and destroyed into nothing
+
+// Recommended running on hardware w/physical hard drives (HDDs) and not SSDs. 
+// HDDs can effectively be overwritten using 1's and 0's. SSDs cannot (at least not effectively)
 
 mod cleanup;
 mod room;
@@ -71,8 +62,7 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
-    // Initialize tracing (server operational logs only — NEVER user data)
-    // Useful for dev purposes but shouldn't be enabled in production to avoid any risk of logging
+    // TODO: Remove tracing. 
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
@@ -150,12 +140,8 @@ async fn shutdown_signal() {
     }
 }
 
-// ─── Server Info Endpoint ───────────────────────────────────────────────────
-
-/// `GET /info` — Returns basic server metadata.
-///
-/// Clients can query this before connecting to see server name,
-/// description, player count, uptime, etc. No sensitive data exposed.
+// Wasn't this a part of heartbeat, which I removed? Oops, this won't do anything. 
+// Or at least, it shouldn't. 
 async fn server_info(AxumState(state): AxumState<AppState>) -> impl IntoResponse {
     Json(state.get_server_info())
 }
