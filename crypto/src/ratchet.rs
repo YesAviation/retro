@@ -1,32 +1,11 @@
-//! Group key ratcheting for forward secrecy.
-//!
-//! ## Design
-//!
-//! The group key ratchets forward on every membership change (join or leave).
-//! This ensures **forward secrecy**: compromising the current key reveals
-//! nothing about messages encrypted under previous keys.
-//!
-//! ```text
-//! K(0) ──HKDF──→ K(1) ──HKDF──→ K(2) ──HKDF──→ ...
-//!   │               │               │
-//!   └─ zeroized     └─ zeroized     └─ current
-//! ```
-//!
-//! - When a member **joins**: ratchet forward so the new member cannot
-//!   decrypt messages from before their arrival (not that they'd have them,
-//!   but defense in depth)
-//! - When a member **leaves**: ratchet forward so the departed member
-//!   cannot decrypt future messages (even if they retained their keys)
-//!
-//! ## Key Derivation
-//!
-//! ```text
-//! K(n+1) = HKDF-SHA256(
-//!     IKM  = K(n),
-//!     salt = epoch_number as big-endian bytes,
-//!     info = b"retro-ratchet"
-//! )
-//! ```
+/// Unsure if this is how I want key ratcheting to work. 
+// Architectually and efficiency are literal key for this to work
+
+// Right now: New User Joins -> Key Ratches Forward but previous conversational history can't be read
+// (Impossible because the previous key is no longer in use (the key that unlocked the previous conversations)
+
+// In terms of security, it makes it impossible for new users to view conversational history prior to their arrival
+// In terms of experience, having to constantly explain to users what was being talked about (the context) is annoying. 
 
 use zeroize::Zeroize;
 
@@ -36,10 +15,6 @@ use crate::CryptoError;
 /// HKDF info string for the ratchet step.
 const RATCHET_INFO: &[u8] = b"retro-ratchet";
 
-/// Group key ratchet state.
-///
-/// Manages the current group key and epoch counter.
-/// Previous keys are immediately zeroized after ratcheting.
 pub struct GroupKeyRatchet {
     /// Current group key (256-bit)
     current_key: [u8; KEY_SIZE],
@@ -70,10 +45,6 @@ impl GroupKeyRatchet {
         }
     }
 
-    /// Ratchet the key forward by one step.
-    ///
-    /// The previous key is **zeroized** immediately.
-    /// Returns the new epoch number.
     pub fn ratchet(&mut self) -> Result<u64, CryptoError> {
         use hkdf::Hkdf;
         use sha2::Sha256;
