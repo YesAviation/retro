@@ -1,13 +1,7 @@
-//! Protocol types and message definitions for Retro.
-//!
-//! These types are shared between client and server, serialized over WebSocket.
-
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-// ─── Errors ─────────────────────────────────────────────────────────────────
 
-/// Cryptographic errors.
 #[derive(Debug, Error)]
 pub enum CryptoError {
     #[error("Key generation failed: {0}")]
@@ -41,12 +35,6 @@ pub enum CryptoError {
     Serialization(String),
 }
 
-// ─── Encryption Primitives ──────────────────────────────────────────────────
-
-/// Double-wrapped encrypted payload.
-///
-/// Inner layer: XChaCha20-Poly1305 (24-byte nonce)
-/// Outer layer: AES-256-GCM (12-byte nonce)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedPayload {
     /// AES-256-GCM nonce (12 bytes, base64)
@@ -81,9 +69,6 @@ pub struct KeyExchangePayload {
     pub signature: String,
 }
 
-// ─── Room Configuration ─────────────────────────────────────────────────────
-
-/// Configuration for a chat room, set by the creator.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RoomConfig {
     /// Human-readable room name (optional, can be empty for anonymous rooms)
@@ -132,9 +117,6 @@ pub struct MemberInfo {
     pub public_keys: PublicKeyBundle,
 }
 
-// ─── Protocol Messages ──────────────────────────────────────────────────────
-
-/// Messages sent from client → server.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum ClientMessage {
