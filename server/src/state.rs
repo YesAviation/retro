@@ -1,13 +1,3 @@
-//! Server-side application state.
-//!
-//! The server maintains minimal state:
-//! - Active rooms (room ID → room data)
-//! - Server metadata (name, description, uptime)
-//! - Connected client count
-//!
-//! NO user-identifying information is stored. Handles are ephemeral
-//! and randomly generated. No IPs, no fingerprints, no metadata.
-
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -125,9 +115,6 @@ impl AppState {
         self.inner.connected_count.load(Ordering::Relaxed)
     }
 
-    // ─── Server Metadata ────────────────────────────────────────────────
-
-    /// Build the ServerInfo response for the /info endpoint.
     pub fn get_server_info(&self) -> ServerInfo {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
